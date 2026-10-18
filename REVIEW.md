@@ -111,8 +111,6 @@ checked in detail:
 
 ### Open items for the author
 
-- The `\author` and `pdfauthor` fields read "Research draft prepared for
-  Samuel Schlesinger" and should be replaced before circulation.
 - The draft's own caveat stands: historical priority of the formulations is
   not established, and the second-pass results were not checked by a proof
   assistant.

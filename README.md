@@ -82,7 +82,7 @@ remaining statements are proved in the manuscript. A targeted priority check
 no earlier unrestricted exponential leaf bound for linear decision trees
 computing inner product; the 2014 survey of Uchizawa poses the depth-free
 bound as an open question. Priority of the remaining formulations is
-unresolved, the author field is a placeholder pending confirmation, and no
+unresolved, and no
 proof-assistant verification of the new results is claimed. The review
 record lists the open items and a plan for formalizing parts of the paper
 in Lean 4.
