@@ -32,6 +32,7 @@
 \theoremstyle{definition}
 \newtheorem{definition}[theorem]{Definition}
 \newtheorem{remark}[theorem]{Remark}
+\newtheorem{conjecture}[theorem]{Conjecture}
 \newcommand{\bits}{\{0,1\}}
 \newcommand{\R}{\mathbb R}
 \newcommand{\Z}{\mathbb Z}
@@ -62,7 +63,7 @@ For arbitrary-depth, arbitrary-real-weight circuits computing inner product modu
 \[
  \sum_{j=0}^{e}\binom qj\ge2^{m/2},
 \]
-where \(q\) counts gates reading original inputs and \(e\) is their worst-case activity. The bound has no depth or weight term, which answers a question posed in Uchizawa's survey, and the same argument gives \(2^{m/2}\) leaves for every linear decision tree computing inner product with arbitrary real query weights. Under the additional restriction that only one party's input-weight vectors are collinear, we prove a distribution-sensitive result: the corresponding transcript has conditional entropy greater than \(m-2\). With randomized error at most \(\epsilon<1/2\), its conditional entropy is at least \((1-2\epsilon)m-4\log_2m-14\); the leading coefficient is optimal for the randomized model. Polynomially many input-reading gates therefore require \(\Omega(m/\log m)\) average activity in this restricted model.
+where \(q\) counts gates reading original inputs and \(e\) is their worst-case activity. The bound has no depth or weight term, which answers a question posed in Uchizawa's survey, and the same argument gives \(2^{m/2}\) leaves for every linear decision tree computing inner product with arbitrary real query weights. Independently, every such tree with \(L\) leaves has sign-rank at most \(L\), so attainable activation patterns are bounded below by sign-rank, and a tree of depth \(q\) agrees with any function \(f\) on at most \(1/2+(2m+2)^q\|M_f\|/2^{m+1}\) of the inputs, which bounds average-case activity when \(q=O(m/\log m)\). Under the additional restriction that only one party's input-weight vectors are collinear, we prove a distribution-sensitive result: the corresponding transcript has conditional entropy greater than \(m-2\). With randomized error at most \(\epsilon<1/2\), its conditional entropy is at least \((1-2\epsilon)m-4\log_2m-14\); the leading coefficient is optimal for the randomized model. Polynomially many input-reading gates therefore require \(\Omega(m/\log m)\) average activity in this restricted model.
 
 For a fixed scalar input direction, we characterize the exact query--activity capacity by the Hamming-ball size \(B(q,e)\). A polynomial-size enumerative-coding construction realizes any threshold circuit using \(N+1\) collinear input-reading gates with activity at most \(\lceil N/2\rceil\). Combining this construction with a prior all-splits rectangle-free family gives an asymptotically tight scalar resource curve. Hyperplane cuttings yield exponential gate lower bounds for bounded input rank and bounded predecessor fan-in, allowing arbitrarily many directions within the rank bound.
 
@@ -71,7 +72,7 @@ Finally, integer zonotopes bound the number of additive summaries by \((\Eul NW/
 \begin{center}
 \small\textbf{Status: second research pass.} Explicit proofs and reproducible finite checks.
 A targeted literature search (Section~\ref{sec:prior}) found no earlier depth-independent energy bound or unrestricted exponential leaf bound; historical priority of the remaining formulations and applications is unresolved.
-No proof-assistant verification of the new results is claimed.
+The leaf-count theorem, its inner-product corollary, and Theorem~\ref{thm:energy} have been checked in Lean~4 in the author's \texttt{complexitylib2} (modules \texttt{DecisionTree} and \texttt{Circuit.Boolean.WeightedThreshold}); no other result is claimed to be machine-checked.
 \end{center}
 \newpage
 {\small\setlength{\parskip}{0pt}\tableofcontents}
@@ -126,6 +127,9 @@ The further results concern four different resources; their hypotheses must be k
  \]
  Under total unimodularity, the exact state count is the number of independent column sets, and sublinear rank gives a subexponential state space (Section~\ref{sec:zonotope-counting}).
 \end{enumerate}
+
+\paragraph{Results added in the third pass.}
+Section~\ref{sec:signrank} shows that every linear decision tree with \(L\) leaves admits \(L\) affine scores whose maximizer is the reached leaf, so its sign-rank is at most \(L\), and more generally the sign-rank of a tree is at most the sum of the sign-ranks of its leaf functions. Hence \(P(C)\ge\operatorname{sr}(f)\) for every threshold circuit computing \(f\), which recovers the inner-product bounds through Forster's theorem and transfers sign-rank lower bounds for \(\mathrm{AC}^0\) functions to activation patterns. Section~\ref{sec:avgcase} proves the average-case bound \(\Pr[T=f]\le1/2+(2m+2)^q\|M_f\|/2^{m+1}\) for trees of depth \(q\), exhibits lists of length \(2^{h_2(\epsilon)m}\) with advantage \(2^{-D(\epsilon\|1/4)m}\) over inner product, and states the correlation conjecture that would make bounded-error leaf complexity exponential.
 
 The scalar constructions bound \emph{input-reading} activity; their internal gates also consume total energy. The algorithmic statements require finite rational descriptions. The rank and average-activity theorems are structural results and do not apply to unrestricted input access.
 
@@ -280,6 +284,54 @@ Each leaf is determined by its answer word, of length at most \(d\) and weight a
 \end{proof}
 Along one input direction, Theorem~\ref{thm:scalar_exact} shows that \(B(d,e)\) is exactly the leaf capacity of depth-\(d\), energy-\(e\) trees.
 
+\paragraph{Bi-monotone queries are separable comparisons in disguise.}
+On a finite domain, the \(1\)-region of a bi-monotone query is an up-set in the product of the two score orders, hence a staircase \(\{(a,b):b\ge\beta^*(a)\}\) with \(\beta^*\) nonincreasing in the first order. Setting \(\alpha'(x)=-\beta^*(\alpha(x))\) and \(\beta'(y)=\beta(y)\) writes the query as \(\ind{\alpha'(x)+\beta'(y)\ge0}\). Thus Theorem~\ref{thm:bimonotone} is Theorem~\ref{thm:leaf} after a monotone change of scores, and every statement below about separable comparisons applies to bi-monotone queries.
+
+\subsection{Affine leaf scores and sign-rank}\label{sec:signrank}
+The rectangle method is two-sided: it finds a large rectangle inside some leaf without controlling its color. A second method identifies the reached leaf by a competition among affine scores. It yields a sign-rank bound, which is incomparable with the rectangle bound and transfers lower bounds from a different part of the literature.
+
+\begin{theorem}[Affine leaf scores]\label{thm:affine_scores}
+Let \(D\subseteq\R^N\) be finite, and let \(T\) be a binary decision tree with \(L\) leaves whose internal nodes test affine inequalities in the coordinates of \(z\in D\). There are affine functions \(S_1,\ldots,S_L:\R^N\to\R\) such that, whenever \(T\) reaches leaf \(p\) on input \(z\in D\),
+\[
+ S_p(z)\ge S_\ell(z)+1\qquad\text{for every leaf }\ell\ne p.
+\]
+\end{theorem}
+\begin{proof}
+Since \(D\) is finite, perturb each threshold so that no query is tied on \(D\), without changing any answer, and scale each query form so that \(|q_v(z)|\ge1\) on \(D\), where the node \(v\) takes its \(1\)-branch exactly when \(q_v(z)>0\). Let \(M\ge1\) bound \(|q_v|\) on \(D\) over all nodes, let \(d\) be the depth, and put \(B=2M+1\). For a leaf \(p\) define
+\[
+ S_p(z)=\sum_{v}B^{\,d-1-\operatorname{depth}(v)}q_v(z),
+\]
+the sum over the nodes \(v\) on the path to \(p\) at which that path takes the \(1\)-branch. Fix \(z\), the reached leaf \(p\), and another leaf \(r\); let \(v\) be the node where the two paths diverge and \(k=d-1-\operatorname{depth}(v)\). Common ancestors contribute equally. At \(v\), if the true answer is \(1\) then \(S_p\) gains \(B^kq_v(z)\ge B^k\) and \(S_r\) nothing; if it is \(0\) then \(S_r\) gains \(B^kq_v(z)\le-B^k\). Below \(v\), each depth contributes at most \(MB^j\) to each score, \(j<k\), so the total adverse contribution is at most \(2M\sum_{j<k}B^j=B^k-1\). Hence \(S_p(z)-S_r(z)\ge1\).
+\end{proof}
+
+With integer query coefficients of magnitude at most \(W\) on the Boolean cube one may take \(M=(N+1)W\), so each score has coefficients of \(O(d(\log N+\log W))\) bits; the scores are computable in polynomial time from an explicit tree.
+
+\begin{theorem}[Sign-rank of comparison trees]\label{thm:signrank_composition}
+Let \(X,Y\) be finite and let \(T\) be a binary tree whose nodes are separable comparisons \(\ind{\alpha_v(x)+\beta_v(y)\ge\theta_v}\) and whose leaf \(\ell\) outputs a total function \(g_\ell:X\times Y\to\{\pm1\}\) of sign-rank \(r_\ell\). Then the function computed by \(T\) has sign-rank at most \(\sum_\ell r_\ell\). In particular a tree with \(L\) constant leaves has sign-rank at most \(L\).
+\end{theorem}
+\begin{proof}
+Induct on the tree. At a node with query form \(h(x,y)=\alpha(x)+\beta(y)-\theta\), perturbed to be nonzero on \(X\times Y\), let \(F_0,F_1\) be nowhere-zero real matrices with the sign patterns of the two child functions and ranks \(\rho_0,\rho_1\). Put \(\delta=\min|h|\), \(m_i=\min|F_i|\), \(M_i=\max|F_i|\), and choose \(K\) with \(\Eul^{K\delta}>\max\{M_0/m_1,M_1/m_0\}\). Then \(F=F_0+\Eul^{Kh}F_1\) has the sign of \(F_0\) where \(h<0\) and of \(F_1\) where \(h>0\), and
+\[
+ \Eul^{Kh(x,y)}F_1(x,y)=\Eul^{-K\theta}\,\Eul^{K\alpha(x)}F_1(x,y)\,\Eul^{K\beta(y)}
+\]
+is a diagonal rescaling of \(F_1\), so \(\rank F\le\rho_0+\rho_1\). For constant leaves use the rank-one matrix \(\pm1\). Alternatively, Theorem~\ref{thm:affine_scores} gives the constant-leaf case directly: with \(t=L+1\) and leaf signs \(\sigma_p\), the function \(\sum_p\sigma_pt^{S_p(x,y)}\) has the sign of the reached leaf, and each term factors as \(t^{c_p}t^{A_p(x)}t^{B_p(y)}\) because \(S_p\) is affine.
+\end{proof}
+
+\begin{corollary}[Sign-rank lower bounds for leaves and patterns]\label{cor:signrank_patterns}
+Every linear decision tree computing \(f:\bits^N\to\bits\) has at least \(\operatorname{sr}(f)\) leaves under any coordinate split, and every threshold circuit computing \(f\) satisfies
+\[
+ P(C)\ge\operatorname{sr}(f),\qquad
+ \sum_{j=0}^{e(C)}\binom qj\ge\operatorname{sr}(f),\qquad
+ \sum_{j=0}^{E(C)}\binom sj\ge\operatorname{sr}(f).
+\]
+For \(\ip_m\), Forster's theorem \cite{Forster02} gives \(\operatorname{sr}=2^{m/2}\) and recovers Corollary~\ref{cor:IPtree} and Theorem~\ref{thm:energy}. For the depth-three \(\mathrm{AC}^0\) function of Razborov and Sherstov, with sign-rank \(2^{\Omega(N^{1/3})}\) \cite{RS10}, every threshold circuit computing it has \(2^{\Omega(N^{1/3})}\) attainable activation patterns, at arbitrary depth and with arbitrary real weights.
+\end{corollary}
+\begin{proof}
+Lemma~\ref{lem:transcript} and Theorem~\ref{thm:signrank_composition}.
+\end{proof}
+
+The two methods are incomparable. There are matrices of polynomial sign-rank all of whose monochromatic rectangles have exponentially small density \cite{Sherstov08}; for those the rectangle bound is exponential and the sign-rank bound is polynomial. Conversely, sign-rank lower bounds are available for functions, such as the Razborov--Sherstov function, for which no small-rectangle property is known. Neither method survives bounded error: sign-rank is an unbounded-error measure, and a matrix agreeing with the Hadamard matrix on a \(1-\epsilon\) fraction of entries can have constant sign-rank; Section~\ref{sec:avgcase} addresses the bounded-error question directly. Recent work on linear decision lists, including alternation-depth hierarchies, is in \cite{PP26}; max-plus threshold representations appear in \cite{HP13}.
+
 \section{Activation patterns and energy at arbitrary depth}\label{sec:energy}
 Number the circuit gates topologically:
 \[
@@ -414,6 +466,55 @@ Choosing \(k=\lfloor\log_2m\rfloor\) for \(m\ge2\) gives
  s=O(m^3/\log m),\qquad E=O(m/\log m).
 \]
 Together with Theorem~\ref{thm:energy}, this determines the order of the least possible worst-case energy among polynomial-size threshold circuits for inner product. It does not optimize the exponent of the polynomial size.
+
+\subsection{Average-case activity in the logarithmic regime}\label{sec:avgcase}
+Theorem~\ref{thm:leaf} extracts one rectangle, which may lie inside the error set of an approximating tree. For trees of small depth a different decomposition handles errors: every leaf cell is a disjoint union of rectangles organized in few classes, and within a class the rectangles have pairwise disjoint sides.
+
+\begin{lemma}[Dyadic decomposition of a cell]\label{lem:dyadic_cells}
+Let \(|X|=|Y|=2^m\), and let \(C\subseteq X\times Y\) be the cell of a leaf at depth \(d\) in a separable-comparison tree. Then \(C\) is a disjoint union of rectangles \(A_S\times S\) that can be grouped into at most \((m+1)^d\) classes such that, within each class, the sets \(S\) are pairwise disjoint and the sets \(A_S\) are pairwise disjoint.
+\end{lemma}
+\begin{proof}
+Let the path's queries be \(\ind{\alpha_j(x)+\beta_j(y)\ge\theta_j}\) with answers \(c_j\), \(j\le d\). For fixed \(x\), the fiber \(\{y:(x,y)\in C\}\) is the set of \(y\) whose position in the \(\beta_j\)-order lies in a prefix or a suffix determined by \(x\), simultaneously for all \(j\): a \(d\)-dimensional orthant. Build a \(d\)-level range tree on \(Y\): dyadic intervals of the \(\beta_1\)-order; inside each, dyadic intervals of the \(\beta_2\)-order of its points; and so on. Every orthant is a disjoint union of canonical sets, at most one of each \emph{type} \((k_1\ge\cdots\ge k_d)\), where \(2^{k_j}\) is the size at level \(j\), because a prefix or suffix of a dyadic interval uses at most one dyadic subinterval of each size. Canonical sets of one type are pairwise disjoint. Let \(A_S\) be the set of \(x\) whose orthant uses the canonical set \(S\). The rectangles \(A_S\times S\) partition \(C\); within a type the \(S\) are disjoint, and each \(x\) lies in at most one \(A_S\). There are at most \((m+1)^d\) types.
+\end{proof}
+
+\begin{theorem}[Spectral bound for shallow trees]\label{thm:spectral_avg}
+Let \(f:X\times Y\to\bits\) with \(|X|=|Y|=2^m\), and let \(M_f=((-1)^{f(x,y)})\) with spectral norm \(\|M_f\|\). Every separable-comparison tree \(T\) of depth at most \(q\), with arbitrary leaf labels, satisfies
+\[
+ \Pr_{x,y}[T(x,y)=f(x,y)]\le\frac12+\frac{(2m+2)^q\,\|M_f\|}{2^{m+1}}.
+\]
+Consequently every threshold circuit with \(q\) input-reading gates, of any depth and with any real weights and any readout of its gate values, agrees with \(\ip_m\) on at most \(1/2+(2m+2)^q2^{-m/2-1}\) of the inputs.
+\end{theorem}
+\begin{proof}
+The agreement equals \(1/2+\frac12\sum_C|\langle\mathbf 1_C,M_f\rangle|/4^m\) over the cells \(C\) of \(T\), with the best labels. For a rectangle, \(|\langle\mathbf1_{A\times S},M_f\rangle|=|\mathbf1_A^{\mathsf T}M_f\mathbf1_S|\le\|M_f\|\sqrt{|A||S|}\). Decompose each cell by Lemma~\ref{lem:dyadic_cells}; within one class, Cauchy--Schwarz and the disjointness of sides give \(\sum_S\sqrt{|A_S||S|}\le\sqrt{\sum|A_S|}\sqrt{\sum|S|}\le2^m\). A cell has at most \((m+1)^q\) classes and there are at most \(2^q\) cells, so \(\sum_C|\langle\mathbf1_C,M_f\rangle|\le(2m+2)^q\|M_f\|2^m\). For inner product \(\|M_f\|=2^{m/2}\), and the circuit statement follows from the transcript tree of Lemma~\ref{lem:transcript}.
+\end{proof}
+
+For \(q\le(1-\epsilon)m/(2\log_2(2m+2))\) the advantage over inner product is \(2^{-\Omega(\epsilon m)}\). This is the average-case counterpart of Theorem~\ref{thm:energy} in the logarithmic regime, and the same decomposition gives \(1/2+b/2+(m+1)^qK2^{1-m}\) for a function whose bias on every rectangle with both sides at least \(K\) is at most \(b\), such as the explicit family of Section~\ref{sec:capacity} under its sumset-bias estimate.
+
+\paragraph{The linear regime is open.}
+Exact computation of \(\ip_m\) needs \(q\ge m/2-2\) input-reading gates by Theorem~\ref{thm:capacity}, and \(q=m\) suffices. Theorem~\ref{thm:spectral_avg} controls bounded error only up to \(q=O(m/\log m)\). An attempt to extend the capacity sweep of Theorem~\ref{thm:capacity} to average case by weighted peeling, cutting the first side into \(G\) groups and deleting the pairs on which a block is nonconstant, loses a \(1/G\) fraction of the mass per block and a factor \(G\) on the first side, so it also reaches only \(q\log q=O(m)\); the two losses are the same phenomenon, namely that \(q\) comparisons in \(q\) different orders have no common rectangle refinement coarser than a \(q\)-dimensional range tree. Whether circuits with \(q=(1/2-\epsilon)m\) input-reading gates have advantage \(o(1)\) over inner product is therefore open, and by the identity \(\Pr[T=f]=1/2+\frac12\sum_C|\langle\mathbf1_C,M_f\rangle|/4^m\) it is a question about the correlation of inner product with intersections of \(\Theta(m)\) halfspaces.
+
+\paragraph{Biased cells with many facets.}
+The following family shows what such correlations can be.
+
+\begin{proposition}[Hamming-ball cells]\label{prop:ball_cells}
+For \(0\le k<m/4\) let \(S_k=\{(x,y)\in\bits^m\times\bits^m:|x\wedge y|\le k\}\). Then \(S_k\) is the intersection of the \(\binom m{k+1}\) halfspaces \(\sum_{i\in U}(x_i+y_i)\le2k+1\), \(U\) ranging over \((k+1)\)-subsets of \([m]\). With \(r=3k/(m-k+1)<1\) and \(P_k=\binom mk4^{-k}(3/4)^{m-k}\),
+\[
+ \Pr[S_k]\ge P_k,\qquad
+ \bigl|\mathbb E[(-1)^{\ip_m}\mid S_k]\bigr|\ge(1-r)^2,
+\]
+and a linear decision list of length \(\binom m{k+1}\) agrees with \(\ip_m\) on at least \(1/2+(1-r)^2P_k/2\) of the inputs. For \(k=\epsilon m\) with fixed \(0<\epsilon<1/4\), the length is \(2^{(h_2(\epsilon)+o(1))m}\) and the advantage is \(2^{-(D(\epsilon\|1/4)+o(1))m}\), where \(D(\epsilon\|p)=\epsilon\log_2(\epsilon/p)+(1-\epsilon)\log_2((1-\epsilon)/(1-p))\).
+\end{proposition}
+\begin{proof}
+A point with \(|x\wedge y|\ge k+1\) violates the constraint of a \((k+1)\)-set inside \(x\wedge y\); a point with \(|x\wedge y|\le k\) has, in every \((k+1)\)-set, a coordinate with \(x_i+y_i\le1\). Under uniform inputs \(|x\wedge y|\sim\mathrm{Bin}(m,1/4)\) with point masses \(P(j)\), and \(P(j-1)/P(j)=3j/(m-j+1)\le r\) for \(j\le k\). Hence \(\sum_{j\le k}(-1)^{k-j}P(j)\ge P(k)-P(k-1)\ge(1-r)P(k)\) and \(\Pr[S_k]\le P(k)/(1-r)\), giving the bias; \(\Pr[S_k]\ge P(k)=P_k\). The list tests the constraints in any order, labels each non-default cell by the majority of \(\ip_m\) on it, and labels the default cell \(S_k\) by \(k\bmod2\). The asymptotics are the standard binomial estimates.
+\end{proof}
+
+At \(\epsilon=1/16\) the list has length \(2^{0.34m}\), below the exact threshold \(2^{m/2}\), and advantage \(2^{-0.18m}\); as \(\epsilon\to0\) the family degenerates to the single cell \(\{x\wedge y=0\}\) with \(m\) facets and correlation \((3/4)^m\). The family suggests the following.
+
+\begin{conjecture}\label{conj:polytope_corr}
+For \(0\le\epsilon\le1/4\), every intersection of at most \(2^{h_2(\epsilon)m}\) halfspaces in \(\R^{2m}\) has correlation at most \(2^{-(D(\epsilon\|1/4)-o(1))m}\) with \(\ip_m\) on \(\bits^m\times\bits^m\).
+\end{conjecture}
+
+The conjecture would imply that every linear decision tree with \(L=2^{o(m)}\) leaves, of any depth, has advantage at most \(L\,2^{-(\log_2(4/3)-o(1))m}\) over inner product, hence that bounded-error leaf complexity is \(2^{\Omega(m)}\), and that circuits with \(q\le(\log_2(4/3)-\epsilon)m\) input-reading gates have advantage \(o(1)\). The known bounds are \(2^{O(d\log m)-m/2}\) for \(d\) facets (the proof of Theorem~\ref{thm:spectral_avg}), which is vacuous at \(d=m/\log m\), and the \(2^{-m}(3/2)^d\) achieved by \(\{x_i+y_i\le1,\ i\in U\}\) with \(|U|=d\).
 
 \section{An exact scalar model and a universal normalization}\label{sec:scalar_exact}
 
@@ -1672,7 +1773,7 @@ The second pass resolves two targets from the earlier draft in restricted models
 The main remaining mathematical questions are more focused. Can the ordered-interval entropy argument be extended to a useful number of input directions while retaining a strong dependence on the error? Can attainable threshold menus be bounded in a broad circuit class without assuming small syntactic fan-in or a fixed set of coefficients? Can a lower-bound measure remain costly after histories merge, beyond the tree-leaf count? For the algorithmic side, which additional algebraic conditions guarantee that the Boolean additive image is much smaller than its containing integer box or zonotope? Finally, the historical priority of the formulations and applications proved here needs a wider literature audit.
 
 \paragraph{Two questions from neighboring models.}
-The first is bounded-error leaf complexity. Theorem~\ref{thm:leaf} extracts one rectangle of density \(L^{-2}\), which may lie inside the error set, so it says nothing about trees computing \(\ip_m\) with error \(\epsilon\) under the uniform distribution. Iterating the extraction after removing the first side of each rectangle found yields disjoint leaf rectangles covering a \(1/L\) fraction of the domain, which gives only a bound linear in \(1/\epsilon\). A linear decision list of length \(\ell\) is a depth-two threshold circuit of size \(\ell+1\) with geometrically decaying top weights \cite{TV97}, so an exponential bounded-error bound even for lists is a special case of average-case depth-two lower bounds for inner product, which are open. The second is nearest-neighbor representations. A representation with \(k\) anchors yields a tournament tree of depth \(k-1\) whose queries compare squared distances to two anchors and are therefore separable comparisons; it has \(2^{k-1}\) leaves, so Corollary~\ref{cor:IPtree} gives \(k\ge m/2+1\) for \(\ip_m\), the scale of the \(k\)-nearest-neighbor bound of Hajnal, Liu, and Tur\'an, while their exponential one-nearest-neighbor bound uses polynomial threshold functions over \(\{1,2\}\) \cite{HLT22}. The cell of one anchor is an intersection of \(k-1\) separable comparisons with different score pairs, which is not a bi-monotone query, and we do not know whether the rectangle extraction extends to partitions into \(k\) polyhedral cells.
+The first is bounded-error leaf complexity. Theorem~\ref{thm:leaf} extracts one rectangle of density \(L^{-2}\), which may lie inside the error set, and sign-rank is an unbounded-error measure, so neither method of Section~\ref{sec:leaf} says anything about trees computing \(\ip_m\) with error \(1/3\) under the uniform distribution. What is known is Theorem~\ref{thm:spectral_avg}: constant advantage forces depth, hence leaves, at least \(\Omega(m/\log m)\). What is attainable is Proposition~\ref{prop:ball_cells}: lists of length \(2^{h_2(\epsilon)m}\) with advantage \(2^{-D(\epsilon\|1/4)m}\), including lengths below the exact threshold \(2^{m/2}\) with exponentially small advantage. Conjecture~\ref{conj:polytope_corr} would close the question. A linear decision list of length \(\ell\) is a depth-two threshold circuit of size \(\ell+1\) with geometrically decaying top weights \cite{TV97}, so a bounded-error bound for lists would also follow from average-case depth-two lower bounds for inner product, which are open; the list case may well be easier. The second is nearest-neighbor representations. A representation with \(k\) anchors yields a tournament tree of depth \(k-1\) whose queries compare squared distances to two anchors and are therefore separable comparisons; it has \(2^{k-1}\) leaves, so Corollary~\ref{cor:IPtree} gives \(k\ge m/2+1\) for \(\ip_m\), the scale of the \(k\)-nearest-neighbor bound of Hajnal, Liu, and Tur\'an, while their exponential one-nearest-neighbor bound uses polynomial threshold functions over \(\{1,2\}\) \cite{HLT22}; DiCicco, Podolskii, and Reichman give exponential \(k\)-nearest-neighbor bounds through min-plus threshold functions \cite{DPR25}. The cell of one anchor is an intersection of \(k-1\) separable comparisons with different score pairs, which is not a bi-monotone query, and we do not know whether the rectangle extraction extends to partitions into \(k\) polyhedral cells.
 
 An unrestricted average-activity lower bound does not follow from the present support-size argument. Its exact rectangle extraction also cannot be used unchanged for constant error, since a small extracted rectangle may lie within the error set. The one-sided scalar proofs overcome this issue through interval structure and character orthogonality; those features must be replaced to reach broader input-access models.
 
@@ -1687,7 +1788,7 @@ The central proof has three independent steps, each with an explicit finite stat
 The use of inclusive prefixes and suffixes handles ties exactly. The proof never assumes leaf regions are rectangles. Input-free gates contribute no new branch. Unreachable branches may be removed, and unary nodes suppressed, without changing the computed function.
 
 The accompanying \texttt{weighted\_pivot\_validation.py} uses seed \(42\) and constructs 10,000 random trees with 1--39 leaves, unequal domains of sizes 1--49, and many tied integer scores; half of the queries are separable comparisons and the rest are the bi-monotone \(\max\) and \(\min\) queries of Theorem~\ref{thm:bimonotone}. It constructs the rectangle supplied by the proof and verifies both exact integer inequalities
-\(|A'|L\ge|A|\), \(|B'|L\ge|B|\), and routing to a single leaf. The run checked 291,978 entries of extracted rectangles without a failure. The same script checks the Hadamard rectangle bound for \(m\le3\), the activation-pattern bound \(P(C)\le B(q,e)\) on 300 random circuits, the depth-three block construction of Section~\ref{sec:upperenergy} on all inputs for \(m\le5\), and the numerical constants \(h_2^{-1}(1/4)\) and \(h_2^{-1}(1/2)\).
+\(|A'|L\ge|A|\), \(|B'|L\ge|B|\), and routing to a single leaf. The run checked 291,978 entries of extracted rectangles without a failure. The same script checks the Hadamard rectangle bound for \(m\le3\), the activation-pattern bound \(P(C)\le B(q,e)\) on 300 random circuits, the depth-three block construction of Section~\ref{sec:upperenergy} on all inputs for \(m\le5\), the affine leaf scores of Theorem~\ref{thm:affine_scores} on \(7{,}414\) tree--input pairs in exact integer arithmetic, the facet description, mass, bias, and list agreement of Proposition~\ref{prop:ball_cells} exhaustively for \(m\le8\), and the numerical constants \(h_2^{-1}(1/4)\) and \(h_2^{-1}(1/2)\).
 
 The second pass includes three further reproducible checks. All four scripts accompany the source and run with \texttt{make check}; their combined output is recorded in \texttt{validation.txt}.
 \begin{itemize}
@@ -1707,6 +1808,8 @@ Statement & Role and scope\\
 \midrule
 Leaf-count rectangles and worst-case activity & Explicit proofs; arbitrary depth and real weights. Removes the depth and weight terms of the prior energy bounds; no earlier statement located (Section~\ref{sec:prior}).\\
 Polynomial-size \(O(m/\log m)\)-energy construction & Known block idea, with a depth-three implementation included.\\
+Affine leaf scores and sign-rank of trees & Proved here; recovers the inner-product bounds through Forster and transfers \(\mathrm{AC}^0\) sign-rank bounds to activation patterns. Priority of the arbitrary-tree statement unverified.\\
+Average case in the logarithmic regime & Dyadic cell decomposition and spectral bound proved here; linear regime open; Hamming-ball lists and the correlation conjecture stated.\\
 Exact scalar capacity and sparse compiler & Exact iff characterization and \(S+O(qe+N)\) implementation proved here. Enumerative coding is classical; activity counts only raw-input-reading gates.\\
 One-sided exact entropy \(>m-2\) & Ordered-run lemma and conditional-entropy argument proved here, with unrestricted access to the other input side.\\
 Randomized entropy \(\ge(1-2\epsilon)m-O(\log m)\) & Biased-interval estimate proved here. One-sided rank at most one for each seed; matching leading-coefficient example.\\
@@ -1840,6 +1943,42 @@ J. H{\aa}stad.
 \emph{Efficiently finding small representations for LTFs}.
 ECCC TR25-209, 2025.
 \url{https://eccc.weizmann.ac.il/report/2025/209/}.
+
+\bibitem{Forster02}
+J. Forster.
+\emph{A linear lower bound on the unbounded error probabilistic communication complexity}.
+Journal of Computer and System Sciences 65(4):612--625, 2002.
+\url{https://doi.org/10.1016/S0022-0000(02)00019-3}.
+
+\bibitem{RS10}
+A. A. Razborov and A. A. Sherstov.
+\emph{The sign-rank of \(\mathrm{AC}^0\)}.
+SIAM Journal on Computing 39(5):1833--1855, 2010.
+\url{https://doi.org/10.1137/080744037}.
+
+\bibitem{Sherstov08}
+A. A. Sherstov.
+\emph{Halfspace matrices}.
+Computational Complexity 17(2):149--178, 2008.
+\url{https://doi.org/10.1007/s00037-008-0242-4}.
+
+\bibitem{HP13}
+K. A. Hansen and V. V. Podolskii.
+\emph{Polynomial threshold functions and Boolean threshold circuits}.
+ECCC TR13-021, 2013; MFCS 2013.
+\url{https://eccc.weizmann.ac.il/report/2013/021/}.
+
+\bibitem{PP26}
+V. V. Podolskii and M. Prior.
+\emph{Alternation depth of threshold decision lists}.
+ICALP 2026, LIPIcs 374, Article 148.
+\url{https://doi.org/10.4230/LIPIcs.ICALP.2026.148}.
+
+\bibitem{DPR25}
+M. DiCicco, V. V. Podolskii, and D. Reichman.
+\emph{Nearest neighbor complexity and Boolean circuits}.
+ITCS 2025, LIPIcs 325, Article 42.
+\url{https://doi.org/10.4230/LIPIcs.ITCS.2025.42}.
 
 \bibitem{Cover65}
 T. M. Cover.

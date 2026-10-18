@@ -10,9 +10,9 @@ unchanged except for the four edits listed under "Changes made".
 ### Build
 
 The draft compiled on the first attempt. After the edits below and the
-priority-check additions, three `pdflatex` passes produce a 42-page PDF with
-no warnings, no overfull or underfull boxes, all 58 labels resolving, and
-every one of the 35 bibliography keys cited. `validation.txt` records the
+priority-check additions, three `pdflatex` passes produce a 46-page PDF with
+no warnings, no overfull or underfull boxes, all 67 labels resolving, and
+every one of the 41 bibliography keys cited. `validation.txt` records the
 final build and check output.
 
 ### Bibliography
@@ -221,6 +221,81 @@ empty). These are recorded so they are not retried without a new idea.
 
 The leaf-count check script now draws max and min queries as well as sums,
 exercising Theorem 2.6; the appendix numbers were updated to the new run.
+
+## Third pass: sign-rank, average case, and the bounded-error question
+
+### Affine leaf scores and sign-rank (Section 2.3)
+
+The author supplied, from a separate assistant session, a proof that every
+linear threshold decision tree with L leaves admits L affine scores whose
+maximizer is the reached leaf, hence has sign-rank at most L, together with
+a composition theorem `sr(tree) <= sum of leaf sign-ranks` via the
+`F_0 + e^{Kh} F_1` construction. Both proofs were checked line by line here
+and are correct: the divergence-node term `B^k` dominates the adverse tail
+`2M (B^k - 1)/(B - 1) = B^k - 1` with `B = 2M + 1`, and the exponential
+factor `e^{K(alpha(x) + beta(y) - theta)}` is a diagonal rescaling that
+preserves rank. The theorems are now Section 2.3 (Theorems 2.9, 2.10,
+Corollary 2.11), with the consequence `P(C) >= sr(f)`, Forster's bound for
+inner product, and the transfer of Razborov–Sherstov's `2^{Omega(N^{1/3})}`
+sign-rank bound for an AC^0 function to activation patterns. The check
+script verifies the score inequality in exact integers on random trees.
+
+Citation check of that note: Hansen–Podolskii ECCC TR13-021 exists but its
+abstract concerns polynomial threshold functions and max-plus variants, not
+a sign-rank bound for decision lists; Podolskii–Prior ICALP 2026 exists and
+concerns alternation depth of lists; the ITCS 2025 nearest-neighbor paper
+is by DiCicco, Podolskii, and Reichman, not Kilic–Hajnal–Turán; the
+Panda–Genest–Easwaran arXiv paper exists but is about differentiable
+oblique trees and was not cited. The manuscript cites these for what their
+abstracts support. Priority of the arbitrary-tree affine-score statement
+was not established and the ledger says so.
+
+A side observation recorded in Section 2.2: a bi-monotone query's 1-region
+is a staircase, which can be rewritten as a separable comparison after a
+monotone change of scores, so Theorem 2.6 is Theorem 2.2 in different
+coordinates and the sign-rank results apply to bi-monotone queries too.
+
+### Average-case capacity: what the peeling attempt produced (Section 3.3)
+
+The target was an average-case version of the capacity theorem by weighted
+peeling of the sweep. The honest outcome: peeling with G groups per block
+loses `1/G` of the mass per block and a factor G on the first side, which
+forces `G ~ q/epsilon` and hence `q log q = O(m)`. The same regime is
+reached, more cleanly and with exponentially small advantage, by a dyadic
+decomposition of each leaf cell into rectangles organized in `(m+1)^d`
+classes with disjoint sides (Lemma 3.5), giving Theorem 3.6:
+`Pr[T = f] <= 1/2 + (2m+2)^q ||M_f|| / 2^{m+1}` for depth-q trees and any f,
+so `1/2 + (2m+2)^q 2^{-m/2-1}` for inner product and for circuits with q
+input-reading gates. That theorem is in the paper; the peeling version is
+not, since it is dominated. The linear regime `q = (1/2 - epsilon) m` is
+stated as open, with the reason: q comparisons in q different orders admit
+no common rectangle refinement coarser than a q-dimensional range tree, and
+both losses (`G^q` and `(m+1)^q`) are that refinement's size.
+
+### The bounded-error leaf question (Section 12)
+
+State after this pass:
+
+- Known lower bound for constant advantage: `Omega(m / log m)` leaves, from
+  Theorem 3.6, for trees and lists alike. The discriminator lemma does not
+  give a bounded-error bound for lists (it needs margins on all inputs), so
+  the earlier remark to that effect was not written into the paper.
+- Attainable: Proposition 3.7. The set `{|x AND y| <= k}` is an intersection
+  of `C(m, k+1)` halfspaces, has mass at least `P_k` and inner-product bias
+  at least `(1 - r)^2` with `r = 3k/(m-k+1)`, so a list of that length has
+  advantage `2^{-D(epsilon || 1/4) m}` at `k = epsilon m`. At
+  `epsilon = 1/16` the length `2^{0.34 m}` is below the exact threshold
+  `2^{m/2}` with advantage `2^{-0.18 m}`. Exhaustively verified for m <= 8.
+- Conjecture 3.8: intersections of `2^{h_2(epsilon) m}` halfspaces have
+  correlation at most `2^{-(D(epsilon || 1/4) - o(1)) m}` with inner product.
+  It would give `2^{Omega(m)}` bounded-error leaf complexity and extend the
+  average-case activity bound to `q < (log_2(4/3) - epsilon) m`.
+- Sign-rank does not help here: a matrix agreeing with Hadamard on a
+  `1 - epsilon` fraction can have constant sign-rank (Forster's spectral
+  bound degrades to `1/(2 sqrt(epsilon))` under adversarial errors).
+- A local search over intersections of d halfspaces at m <= 5 found no
+  cell beating the junta family; the search is too weak at that size to be
+  evidence and is not cited in the paper.
 
 ## Check-script coverage
 

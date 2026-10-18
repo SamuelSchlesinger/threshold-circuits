@@ -19,7 +19,16 @@ Main statements, with their hypotheses kept separate:
   linear activity; the known polynomial-size `O(m / log m)`-energy
   construction is included. The same theorem holds for bi-monotone queries,
   recovers the exponential decision-list bounds with exponent m/2, and
-  removes the rank restriction of earlier tree bounds.
+  removes the rank restriction of earlier tree bounds. Independently, an
+  L-leaf tree has sign-rank at most L, so activation patterns are bounded
+  below by sign-rank, which transfers AC^0 sign-rank bounds to energy.
+- **Average case.** A depth-q tree agrees with any f on at most
+  `1/2 + (2m+2)^q ||M_f|| / 2^{m+1}` of the inputs, so circuits with
+  `O(m / log m)` input-reading gates have exponentially small advantage over
+  inner product. The linear regime is open; Hamming-ball lists of length
+  `2^{h(eps) m}` reach advantage `2^{-D(eps||1/4) m}`, and a correlation
+  conjecture for polytopes is stated that would make bounded-error leaf
+  complexity exponential.
 - **Exact scalar capacity.** For one input direction, q scalar queries of
   activity at most e compute f exactly iff the number of monochromatic score
   runs is at most the Hamming-ball size B(q, e). An enumerative-coding

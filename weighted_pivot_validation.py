@@ -11,6 +11,11 @@ Hadamard rectangle bound for inner product on small sizes, the depth-three
 block construction of Section 3.3, and the activation-pattern bound
 P(C) <= B(q, e) on random small threshold circuits.
 
+It also checks the affine leaf scores of Theorem 2.9 (the reached leaf beats
+every other leaf by at least one, in exact integer arithmetic) and the
+Hamming-ball lists of Proposition 3.7 (exact mass, bias, facet description,
+and list agreement against the stated bounds).
+
 These are semantic checks of finite instances.  They do not prove the
 theorems for unbounded parameters.
 """
@@ -285,6 +290,102 @@ def check_block_construction(max_m=5):
 
 
 # --------------------------------------------------------------------------
+# Theorem 2.9: affine leaf scores
+# --------------------------------------------------------------------------
+
+def leaves_with_paths(tree, depth=0, path=()):
+    if isinstance(tree, Leaf):
+        yield tree.ident, path
+        return
+    yield from leaves_with_paths(tree.zero, depth + 1, path + ((tree, depth, 0),))
+    yield from leaves_with_paths(tree.one, depth + 1, path + ((tree, depth, 1),))
+
+
+def check_affine_scores(rng, trials=400):
+    """Scores S_p = sum over one-edges of B^(d-1-depth) q_v, with q_v = 2(alpha+beta-theta)+1."""
+    checked = 0
+    for _ in range(trials):
+        leaves = rng.randrange(1, 13)
+        nx, ny = rng.randrange(1, 9), rng.randrange(1, 9)
+        tree = random_tree(rng, leaves, nx, ny, [0])
+        # Restrict to separable (sum) queries, which are affine.
+        def make_sum(t):
+            if isinstance(t, Node):
+                t.kind = "sum"
+                make_sum(t.zero); make_sum(t.one)
+        make_sum(tree)
+        paths = list(leaves_with_paths(tree))
+        d = max((len(path) for _, path in paths), default=0)
+        if d == 0:
+            continue
+        def q(node, x, y):
+            return 2 * (node.alpha[x] + node.beta[y] - node.theta) + 1
+        M = 1
+        for x in range(nx):
+            for y in range(ny):
+                for _, path in paths:
+                    for node, _, _ in path:
+                        M = max(M, abs(q(node, x, y)))
+        B = 2 * M + 1
+        for x in range(nx):
+            for y in range(ny):
+                scores = {}
+                for ident, path in paths:
+                    scores[ident] = sum(B ** (d - 1 - dep) * q(node, x, y)
+                                        for node, dep, edge in path if edge == 1)
+                    for node, _, _ in path:
+                        assert abs(q(node, x, y)) >= 1 and (q(node, x, y) > 0) == bool(node.query(x, y))
+                reached = route(tree, x, y)
+                for ident, sc in scores.items():
+                    if ident != reached:
+                        assert scores[reached] >= sc + 1, (x, y, reached, ident)
+                checked += 1
+    return checked
+
+
+# --------------------------------------------------------------------------
+# Proposition 3.7: Hamming-ball cells and lists
+# --------------------------------------------------------------------------
+
+def check_ball_lists(max_m=8):
+    from itertools import combinations
+    cases = 0
+    for m in range(2, max_m + 1):
+        pts = list(product((0, 1), repeat=2 * m))
+        total = len(pts)
+        for k in range(0, (m - 1) // 4 + 1):
+            if not 4 * k < m:
+                continue
+            facets = list(combinations(range(m), k + 1))
+            r = Fraction(3 * k, m - k + 1)
+            P_k = Fraction(math.comb(m, k) * 3 ** (m - k), 4 ** m)
+            mass = 0
+            signed = 0
+            agreement = 0
+            cell_counts = {}
+            for pt in pts:
+                x, y = pt[:m], pt[m:]
+                inter = sum(a & b for a, b in zip(x, y))
+                ip = inter & 1
+                inside = all(sum(x[i] + y[i] for i in U) <= 2 * k + 1 for U in facets)
+                assert inside == (inter <= k)
+                if inside:
+                    mass += 1
+                    signed += 1 - 2 * ip
+                    agreement += ip == (k % 2)
+                else:
+                    first = next(j for j, U in enumerate(facets)
+                                 if sum(x[i] + y[i] for i in U) >= 2 * k + 2)
+                    cell_counts.setdefault(first, [0, 0])[ip] += 1
+            agreement += sum(max(c) for c in cell_counts.values())
+            assert Fraction(mass, total) >= P_k
+            assert Fraction(abs(signed), mass) >= (1 - r) ** 2
+            assert Fraction(agreement, total) >= Fraction(1, 2) + (1 - r) ** 2 * P_k / 2
+            cases += 1
+    return cases
+
+
+# --------------------------------------------------------------------------
 # Analytic constants used in the energy corollaries
 # --------------------------------------------------------------------------
 
@@ -336,6 +437,11 @@ def main():
     circuits = check_block_construction()
     print(f"depth-three block construction for IP_m: {circuits} (m, k) pairs, "
           f"m <= 5, exhaustive inputs")
+    scores = check_affine_scores(rng)
+    print(f"affine leaf scores: {scores} (tree, input) pairs, reached leaf wins by at least one")
+    balls = check_ball_lists()
+    print(f"Hamming-ball cells and lists: {balls} (m, k) pairs with m <= 8, exact masses, "
+          f"biases, and list agreements")
     quarter, half, checks = check_constants()
     print(f"constants: h2^-1(1/4) = {quarter:.11f}, h2^-1(1/2) = {half:.10f}, "
           f"{checks} Hamming-ball estimates")

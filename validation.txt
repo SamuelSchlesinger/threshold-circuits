@@ -1,9 +1,9 @@
 Validation record, October 18, 2026
 
 make
-  Three pdflatex passes; 42 pages.
+  Three pdflatex passes; 46 pages.
   Final log: no warnings, no overfull or underfull boxes.
-  All 58 labels resolve; every cite key has a bibitem and all 35 bibitems
+  All 67 labels resolve; every cite key has a bibitem and all 41 bibitems
   are cited.
 
 make check
@@ -11,6 +11,8 @@ make check
   Hadamard rectangle bound: 343 maximal monochromatic rectangles checked for m <= 3
   activation-pattern Hamming-ball bound: 300 random circuits
   depth-three block construction for IP_m: 15 (m, k) pairs, m <= 5, exhaustive inputs
+  affine leaf scores: 7414 (tree, input) pairs, reached leaf wins by at least one
+  Hamming-ball cells and lists: 11 (m, k) pairs with m <= 8, exact masses, biases, and list agreements
   constants: h2^-1(1/4) = 0.04169269027, h2^-1(1/2) = 0.1100278644, 2790 Hamming-ball estimates
   weighted_pivot_validation: all checks passed
   ordered inner-product runs: 826 column orders (all 26 for m = 1, 2; 160 sampled for m = 3..7), largest conditional run entropy 1.306174414 bits, 244676 exact anchor probabilities
@@ -36,6 +38,8 @@ make check
 The four scripts exercise proof certificates and construction edge cases on
 finite instances (seeds 42 and 20261018). They compare constructions with
 exhaustive enumeration and verify the exact inequalities used in the proofs;
-they do not prove any statement for unbounded parameters, and no proof
-assistant verification of the new results is claimed. Total running time is
-about fifteen seconds with CPython 3.
+they do not prove any statement for unbounded parameters. The leaf-count
+theorem, its inner-product corollary, and the size-activity theorem are
+machine-checked in the author's complexitylib2 (Lean 4); no other result is
+claimed to be machine-checked. Total running time of the checks is about
+fifteen seconds with CPython 3.
