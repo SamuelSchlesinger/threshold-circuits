@@ -2,9 +2,11 @@
 """Finite checks for the leaf-count rectangle theorem and the energy section.
 
 The checks exercise the certificate extracted by the proof of the leaf-count
-rectangle theorem (Theorem 2.2): at every comparison node the quantile pivot
-keeps at least the chosen child's leaf fraction on both sides, and the
-fractions telescope to 1/L along the selected path.  They also check the
+rectangle theorem (Theorem 2.2) and its bi-monotone extension (Theorem 2.6):
+at every node the quantile pivot keeps at least the chosen child's leaf
+fraction on both sides, and the fractions telescope to 1/L along the selected
+path.  Queries are separable comparisons alpha(x) + beta(y) >= theta or the
+bi-monotone variants max(alpha, beta) >= theta and min(alpha, beta) >= theta.  They also check the
 Hadamard rectangle bound for inner product on small sizes, the depth-three
 block construction of Section 3.3, and the activation-pattern bound
 P(C) <= B(q, e) on random small threshold circuits.
@@ -38,19 +40,25 @@ class Leaf:
         self.ident = ident
 
 
-class Node:
-    __slots__ = ("alpha", "beta", "theta", "zero", "one", "leaves")
+QUERY_KINDS = ("sum", "sum", "max", "min")
 
-    def __init__(self, alpha, beta, theta, zero, one):
+
+class Node:
+    __slots__ = ("alpha", "beta", "theta", "kind", "zero", "one", "leaves")
+
+    def __init__(self, alpha, beta, theta, kind, zero, one):
         self.alpha = alpha
         self.beta = beta
         self.theta = theta
+        self.kind = kind
         self.zero = zero
         self.one = one
         self.leaves = zero.leaves + one.leaves
 
     def query(self, x, y):
-        return 1 if self.alpha[x] + self.beta[y] >= self.theta else 0
+        a, b = self.alpha[x], self.beta[y]
+        score = a + b if self.kind == "sum" else (max(a, b) if self.kind == "max" else min(a, b))
+        return 1 if score >= self.theta else 0
 
 
 def random_tree(rng, leaves, nx, ny, counter):
@@ -62,7 +70,8 @@ def random_tree(rng, leaves, nx, ny, counter):
     alpha = [rng.randrange(-SCORE_RANGE, SCORE_RANGE + 1) for _ in range(nx)]
     beta = [rng.randrange(-SCORE_RANGE, SCORE_RANGE + 1) for _ in range(ny)]
     theta = rng.randrange(-2 * SCORE_RANGE, 2 * SCORE_RANGE + 1)
-    return Node(alpha, beta, theta,
+    kind = rng.choice(QUERY_KINDS)
+    return Node(alpha, beta, theta, kind,
                 random_tree(rng, left, nx, ny, counter),
                 random_tree(rng, leaves - left, nx, ny, counter))
 
@@ -316,8 +325,8 @@ def check_constants():
 
 def main():
     entries = check_leaf_count_theorem()
-    print(f"leaf-count rectangle theorem: {TREES} random trees, seed {SEED}, "
-          f"{entries} rectangle entries routed to a single leaf")
+    print(f"leaf-count rectangle theorem: {TREES} random separable and bi-monotone "
+          f"trees, seed {SEED}, {entries} rectangle entries routed to a single leaf")
     rect = check_hadamard_rectangles()
     print(f"Hadamard rectangle bound: {rect} maximal monochromatic rectangles "
           f"checked for m <= 3")

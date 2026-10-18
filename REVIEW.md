@@ -10,9 +10,9 @@ unchanged except for the four edits listed under "Changes made".
 ### Build
 
 The draft compiled on the first attempt. After the edits below and the
-priority-check additions, three `pdflatex` passes produce a 39-page PDF with
-no warnings, no overfull or underfull boxes, all 54 labels resolving, and
-every one of the 23 bibliography keys cited. `validation.txt` records the
+priority-check additions, three `pdflatex` passes produce a 42-page PDF with
+no warnings, no overfull or underfull boxes, all 58 labels resolving, and
+every one of the 35 bibliography keys cited. `validation.txt` records the
 final build and check output.
 
 ### Bibliography
@@ -170,6 +170,59 @@ restriction only. A search is not a proof of priority, and the ledger says so.
 For the other components, two quick searches found nothing on enumerative
 coding inside threshold circuits or on zonotope-based counting for threshold
 circuits; those searches were shallow and the draft's own caveat stands.
+
+## Related models and additions, October 18, 2026
+
+A second pass placed the paper against neighboring computational models and
+pushed the comparisons to statements where the existing machinery allowed it.
+
+Additions to the manuscript:
+
+- A "Related models" list at the end of Section 1.2 covering decision lists
+  and bounded-rank trees, the energy of decision trees as defined by
+  Uchizawa–Douglas–Maass, activation and linear regions of neural networks
+  (Cover, Zaslavsky, Montúfar et al., Raghu et al., Serra et al., Hanin and
+  Rolnick), ordered BDDs of threshold functions (Hosaka et al. 1997),
+  functions of few halfspaces and the Dahiya et al. conversion to depth two,
+  energy of De Morgan circuits (Dinesh–Otiv–Sarma), linear branching programs
+  over F2 (Gryaznov–Pudlák–Talebanfard), nearest-neighbor representations
+  (Hajnal–Liu–Turán), and Barvinok's fixed-dimension counting.
+- New Section 2.2 with three results. Theorem 2.6 (bi-monotone queries):
+  the leaf-count theorem holds for trees whose queries are arbitrary
+  functions monotone in one score per side, covering thresholds, max, min,
+  and products of nonnegative scores; the proof is the same quantile
+  argument with sorted orders. Corollary 2.7: linear decision lists for
+  inner product have length at least `2^{m/2} - 1`, and rank-r trees need
+  depth `(r/e) 2^{m/(2r)}`; this recovers the Turán–Vatan and CMMS list
+  bounds with an explicit exponent and removes the rank restriction of
+  Dahiya et al. Corollary 2.8: trees of depth d and energy e (Uchizawa's
+  notion, 1-answers per path) have at most `B(d, e)` leaves, so
+  `B(d, e) >= 2^{m/2}` for inner product; Theorem 4.1 shows this capacity is
+  exact along one direction.
+- A sentence at the start of Section 6 separating real threshold queries
+  from F2-linear queries, and a citation of Hosaka et al. for the rank-one
+  case of the read-once summary program in Section 9.
+- Two precisely stated open questions in Section 12: bounded-error leaf
+  complexity of linear decision trees for inner product, where the single
+  extracted rectangle can sit inside the error set and iterating the
+  extraction gives only a bound linear in `1/epsilon`, and where even the
+  list case is a special case of average-case depth-two lower bounds; and
+  nearest-neighbor representations, where the tournament tree gives only
+  `k >= m/2 + 1`, matching Hajnal–Liu–Turán's k-NN scale but not their
+  exponential 1-NN bound, because a Voronoi cell is a conjunction of
+  separable comparisons with different scores and is not bi-monotone.
+
+What was tried and did not yield a theorem: a k-party box version of the
+leaf-count theorem (weaker than the two-party version, since a box is a
+rectangle for the coarsened partition); a bounded-error leaf bound through
+iterated rectangle extraction (total covered mass is only `1/L`); a
+randomized-communication simulation of a tree in `O(log L)` cost (checking
+membership in a node's region costs depth, not log-leaves); and conjunction
+queries in the quantile lemma (the intersections of the 1-rectangles can be
+empty). These are recorded so they are not retried without a new idea.
+
+The leaf-count check script now draws max and min queries as well as sums,
+exercising Theorem 2.6; the appendix numbers were updated to the new run.
 
 ## Check-script coverage
 

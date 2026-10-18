@@ -144,6 +144,20 @@ For the direction/offset results we use, and reprove, the all-splits capacity th
 
 The second pass also uses three classical ingredients with explicit attribution. The sparse scalar compiler implements Cover's enumerative source coding inside a threshold circuit \cite{Cover73}. The rank--catalogue theorem applies Chazelle's hyperplane-cutting theorem \cite{Chazelle93}. The exact-counting bound uses the lattice-zonotope formula expressed through the arithmetic Tutte polynomial \cite{DM11}. The coding scheme, cutting theorem, and lattice-point formula are prior results; the circuit constructions and consequences stated in this manuscript are proved in full. No exhaustive bibliographic-priority conclusion is asserted for those applications or for the ordered-run entropy estimates.
 
+\paragraph{Related models.}
+Several other models meet the representations used here. The comparisons are made where the corresponding results appear; this list collects them.
+\begin{itemize}
+ \item \emph{Decision lists and bounded rank.} Linear decision lists are rank-one linear decision trees. Corollary~\ref{cor:lists} recovers the exponential list bounds of Tur\'an and Vatan \cite{TV97} and Chattopadhyay et al.~\cite{CMMS20} with exponent \(m/2\), and removes the rank restriction of Dahiya et al.~\cite{Dahiya23}.
+ \item \emph{Energy of decision trees.} Uchizawa, Douglas, and Maass measure the energy of a threshold decision tree by the number of \(1\)-answers on a path \cite{UDM06}. The Hamming-ball count \(B(d,e)\) is the leaf capacity of depth-\(d\), energy-\(e\) trees (Corollary~\ref{cor:tree_energy}), and Theorem~\ref{thm:scalar_exact} shows that it is attained exactly along a single direction.
+ \item \emph{Activation regions.} The pattern count \(P(C)\) is what the neural-network literature calls the number of activation regions or linear regions \cite{MPCB14,RPKGS17,STR18}; its ancestors are Cover's function-counting theorem and Zaslavsky's arrangement bound \cite{Cover65,Zaslavsky75}. Those counts concern fixed hyperplanes or random weights: \(q\) fixed hyperplanes cut a line into \(q+1\) pieces, and Hanin and Rolnick prove that a ReLU network with random weights has, on average, linearly many regions along any line \cite{HR19}. Theorems~\ref{thm:scalar_exact} and~\ref{thm:scalar_universal} show that worst-case threshold circuits behave differently: internal weights make the \(q\) thresholds adaptive, \(2^q\) runs along a line are attainable, and polynomial size attains \(2^N\) of them with \(N+1\) collinear gates.
+ \item \emph{Ordered binary decision diagrams.} Hosaka, Takenaga, Kaneda, and Yajima give the \(O(nW)\)-node ordered BDD for one integer-weight threshold function and exponential lower bounds for large weights \cite{HTKY97}. The read-once program of Section~\ref{sec:summary}, with \(O(N(NW+1)^r)\) nodes, is the rank-\(r\) form of their construction, and Proposition~\ref{prop:summary} is the matching rank--precision obstruction.
+ \item \emph{Functions of few halfspaces and depth two.} The rank--catalogue model of Section~\ref{sec:rankcut} consists of Boolean functions of \(H\) halfspaces whose normals span a space of dimension \(r\); it sits between functions of \(k\) halfspaces \cite{GOWZ10} and arbitrary threshold circuits. Dahiya et al.\ convert constant-rank trees with \(L\) leaves into depth-two threshold circuits of size \(\poly(L)\) \cite{Dahiya23}; since the best depth-two lower bounds are \(n^{2.5-\epsilon}\) \cite{CTW26}, Corollary~\ref{cor:IPtree} neither follows from nor implies them.
+ \item \emph{Energy of De Morgan circuits.} Dinesh, Otiv, and Sarma bound the energy of circuits over the De Morgan basis through decision-tree depth \cite{DOS20}. The route through decision trees is shared; the basis and the measure are not.
+ \item \emph{Linear queries over \(\F_2\).} The linear branching programs of Gryaznov, Pudl\'ak, and Talebanfard \cite{GPT22} and parity decision trees query \(\F_2\)-linear forms. Every query in this paper is a real threshold comparison; Section~\ref{sec:bias} repeats the distinction where the term is used.
+ \item \emph{Nearest-neighbor representations.} Hajnal, Liu, and Tur\'an prove an exponential lower bound on the number of anchors needed to represent inner product by nearest neighbors, through polynomial threshold functions over \(\{1,2\}\), and a linear bound for \(k\)-nearest neighbors \cite{HLT22}. Section~\ref{sec:limits} records that the leaf-count theorem reaches only the linear scale and why.
+ \item \emph{Lattice-point counting.} For fixed summary rank, the counting algorithm of Section~\ref{sec:zonotope-counting} runs in polynomial time, as Barvinok's algorithm does for lattice points of fixed-dimensional polytopes \cite{Barvinok94}; the zonotope formula used here belongs to the same Ehrhart-theoretic circle.
+\end{itemize}
+
 \section{A rectangle theorem controlled by leaf count}\label{sec:leaf}
 Let \(X,Y\) be finite nonempty sets. A \emph{separable comparison} is a query
 \[
@@ -236,6 +250,35 @@ leaves. Indeed, at least one child has rank at most \(r-1\), and induction uses 
  \log_2\left(\sum_{j=0}^{r}\binom dj\right)\ge m/2.
 \]
 This consequence requires no separate rank-based rectangle argument.
+
+\subsection{Bi-monotone queries, decision lists, and tree energy}\label{sec:variants}
+The proof of Theorem~\ref{thm:leaf} uses only that each query is monotone in one real score on each side.
+
+\begin{theorem}[Bi-monotone queries]\label{thm:bimonotone}
+Call a query \emph{bi-monotone} if \(g(x,y)=h(\alpha(x),\beta(y))\) for real-valued \(\alpha,\beta\) and a function \(h:\R^2\to\bits\) that is monotone in each argument separately, with a fixed direction of monotonicity for each argument. Lemma~\ref{lem:quantile}, Theorem~\ref{thm:leaf}, Corollary~\ref{cor:leafarea}, and their product-distribution forms hold verbatim for binary trees of bi-monotone queries.
+\end{theorem}
+\begin{proof}
+Sort \(A\) and \(B\) so that \(g\) is nondecreasing along both orders, reversing an order where \(h\) is nonincreasing in that argument. If \(g(x_i,y_j)=0\), every pair in the two prefixes has both scores on the nonincreasing side of \((x_i,y_j)\), so \(g=0\) there; otherwise the two inclusive suffixes give \(g=1\). The sizes and the induction are unchanged.
+\end{proof}
+
+Separable comparisons are the case \(h(a,b)=\ind{a+b\ge\theta}\). The class also contains the queries \(\ind{\max\{\alpha(x),\beta(y)\}\ge\theta}\) and \(\ind{\min\{\alpha(x),\beta(y)\}\ge\theta}\), which are the disjunction and the conjunction of one Alice-only and one Bob-only threshold, as well as comparisons of products of nonnegative scores. It does not contain a conjunction of two separable comparisons with different score pairs; Section~\ref{sec:limits} returns to this limitation.
+
+\begin{corollary}[Decision lists and bounded rank]\label{cor:lists}
+A linear decision list is a tree in which every internal node has a leaf child; its length is its number of internal nodes. Every linear decision list computing \(\ip_m\) has length at least \(2^{m/2}-1\). Every linear decision tree of rank \(r\) and depth \(d\) computing \(\ip_m\) satisfies \(\sum_{j=0}^{r}\binom dj\ge2^{m/2}\), hence \(d\ge(r/\Eul)\,2^{m/(2r)}\) when \(1\le r\le d\). Query weights are arbitrary reals.
+\end{corollary}
+\begin{proof}
+A list of length \(\ell\) has \(\ell+1\) leaves; apply Corollary~\ref{cor:IPtree}. The rank statement is the rank--depth consequence above, and the final inequality is the generating-function estimate in the proof of Theorem~\ref{thm:energy}.
+\end{proof}
+
+Exponential length lower bounds for linear decision lists computing inner product are due to Tur\'an and Vatan \cite{TV97}, with a \(2^{\Omega(m)}\) bound for \(\mathrm{MAJ}\circ\mathrm{XOR}\) by Chattopadhyay et al.~\cite{CMMS20}; Dahiya et al.\ treat constant rank \cite{Dahiya23}. Corollary~\ref{cor:lists} recovers the list case with the explicit exponent \(m/2\) and extends it to unbounded rank, where the previous unrestricted bound was \(\exp(\Omega(\sqrt m))\).
+
+\begin{corollary}[Energy of linear decision trees]\label{cor:tree_energy}
+Following Uchizawa, Douglas, and Maass \cite{UDM06}, define the energy of a binary linear decision tree as the maximum number of \(1\)-answers on a root-to-leaf path. A tree of depth \(d\) and energy \(e\) has at most \(B(d,e)=\sum_{j=0}^{e}\binom dj\) leaves. Hence every such tree computing \(\ip_m\) has \(B(d,e)\ge2^{m/2}\), and \(e\log_2(\Eul d/e)\ge m/2\) when \(1\le e\le d\).
+\end{corollary}
+\begin{proof}
+Each leaf is determined by its answer word, of length at most \(d\) and weight at most \(e\). Apply Corollary~\ref{cor:IPtree} and the estimate in the proof of Theorem~\ref{thm:energy}.
+\end{proof}
+Along one input direction, Theorem~\ref{thm:scalar_exact} shows that \(B(d,e)\) is exactly the leaf capacity of depth-\(d\), energy-\(e\) trees.
 
 \section{Activation patterns and energy at arbitrary depth}\label{sec:energy}
 Number the circuit gates topologically:
@@ -873,7 +916,7 @@ chosen using the entire Alice input and the random seed.
 
 
 \section{Pending biases as an exact branching-program state}\label{sec:bias}
-The transcript tree preserves all past gate values. A branching program can merge histories whose effects on the future agree.
+The transcript tree preserves all past gate values. A branching program can merge histories whose effects on the future agree. Throughout, a linear query is a real threshold comparison \(\ind{a\cdot x\ge\theta}\); the linear branching programs of Gryaznov, Pudl\'ak, and Talebanfard \cite{GPT22} and parity decision trees query \(\F_2\)-linear forms, and none of the statements below concern that model.
 
 Let \(B=(b_{ij})\) be the strictly lower triangular internal weight matrix. At the cut after gate \(k\), define
 \[
@@ -1304,7 +1347,7 @@ These are information-capacity bounds for additive summaries, closely related to
 
 \paragraph{A true read-once interpretation.}
 If the entire input matrix has an integer row basis of rank \(r\) with entries bounded by \(W\), an ordered read-once branching program can track its \(r\) partial weighted sums while reading inputs once. It has
-\(O(N(NW+1)^r)\) nodes; at the last layer, assign outputs by evaluating the circuit on the completed summary. This is nonuniform and places no restriction on internal weights.
+\(O(N(NW+1)^r)\) nodes; at the last layer, assign outputs by evaluating the circuit on the completed summary. This is nonuniform and places no restriction on internal weights. For \(r=1\) it is the ordered BDD of Hosaka et al.\ for a threshold function with weights bounded by \(W\) \cite{HTKY97}.
 
 \paragraph{A cut with phased input access.}
 If gates before cut \(k\) read only \(u\), and gates after it read only \(v\), with the output gate in the suffix, the reachable pending bias \(p_k\) is a deterministic one-way message. Distinct rows of \(f\) require distinct reachable messages. Thus for inner product or equality on \(m+m\) bits, \(|\mathcal S_k^{\rm reach}|\ge2^m\), and integer internal weights give
@@ -1628,6 +1671,9 @@ The second pass resolves two targets from the earlier draft in restricted models
 
 The main remaining mathematical questions are more focused. Can the ordered-interval entropy argument be extended to a useful number of input directions while retaining a strong dependence on the error? Can attainable threshold menus be bounded in a broad circuit class without assuming small syntactic fan-in or a fixed set of coefficients? Can a lower-bound measure remain costly after histories merge, beyond the tree-leaf count? For the algorithmic side, which additional algebraic conditions guarantee that the Boolean additive image is much smaller than its containing integer box or zonotope? Finally, the historical priority of the formulations and applications proved here needs a wider literature audit.
 
+\paragraph{Two questions from neighboring models.}
+The first is bounded-error leaf complexity. Theorem~\ref{thm:leaf} extracts one rectangle of density \(L^{-2}\), which may lie inside the error set, so it says nothing about trees computing \(\ip_m\) with error \(\epsilon\) under the uniform distribution. Iterating the extraction after removing the first side of each rectangle found yields disjoint leaf rectangles covering a \(1/L\) fraction of the domain, which gives only a bound linear in \(1/\epsilon\). A linear decision list of length \(\ell\) is a depth-two threshold circuit of size \(\ell+1\) with geometrically decaying top weights \cite{TV97}, so an exponential bounded-error bound even for lists is a special case of average-case depth-two lower bounds for inner product, which are open. The second is nearest-neighbor representations. A representation with \(k\) anchors yields a tournament tree of depth \(k-1\) whose queries compare squared distances to two anchors and are therefore separable comparisons; it has \(2^{k-1}\) leaves, so Corollary~\ref{cor:IPtree} gives \(k\ge m/2+1\) for \(\ip_m\), the scale of the \(k\)-nearest-neighbor bound of Hajnal, Liu, and Tur\'an, while their exponential one-nearest-neighbor bound uses polynomial threshold functions over \(\{1,2\}\) \cite{HLT22}. The cell of one anchor is an intersection of \(k-1\) separable comparisons with different score pairs, which is not a bi-monotone query, and we do not know whether the rectangle extraction extends to partitions into \(k\) polyhedral cells.
+
 An unrestricted average-activity lower bound does not follow from the present support-size argument. Its exact rectangle extraction also cannot be used unchanged for constant error, since a small extracted rectangle may lie within the error set. The one-sided scalar proofs overcome this issue through interval structure and character orthogonality; those features must be replaced to reach broader input-access models.
 
 \appendix
@@ -1640,8 +1686,8 @@ The central proof has three independent steps, each with an explicit finite stat
 \end{enumerate}
 The use of inclusive prefixes and suffixes handles ties exactly. The proof never assumes leaf regions are rectangles. Input-free gates contribute no new branch. Unreachable branches may be removed, and unary nodes suppressed, without changing the computed function.
 
-The accompanying \texttt{weighted\_pivot\_validation.py} uses seed \(42\) and constructs 10,000 random separable-comparison trees with 1--39 leaves, unequal domains of sizes 1--49, and many tied integer scores. It constructs the rectangle supplied by the proof and verifies both exact integer inequalities
-\(|A'|L\ge|A|\), \(|B'|L\ge|B|\), and routing to a single leaf. The run checked 283,199 entries of extracted rectangles without a failure. The same script checks the Hadamard rectangle bound for \(m\le3\), the activation-pattern bound \(P(C)\le B(q,e)\) on 300 random circuits, the depth-three block construction of Section~\ref{sec:upperenergy} on all inputs for \(m\le5\), and the numerical constants \(h_2^{-1}(1/4)\) and \(h_2^{-1}(1/2)\).
+The accompanying \texttt{weighted\_pivot\_validation.py} uses seed \(42\) and constructs 10,000 random trees with 1--39 leaves, unequal domains of sizes 1--49, and many tied integer scores; half of the queries are separable comparisons and the rest are the bi-monotone \(\max\) and \(\min\) queries of Theorem~\ref{thm:bimonotone}. It constructs the rectangle supplied by the proof and verifies both exact integer inequalities
+\(|A'|L\ge|A|\), \(|B'|L\ge|B|\), and routing to a single leaf. The run checked 291,978 entries of extracted rectangles without a failure. The same script checks the Hadamard rectangle bound for \(m\le3\), the activation-pattern bound \(P(C)\le B(q,e)\) on 300 random circuits, the depth-three block construction of Section~\ref{sec:upperenergy} on all inputs for \(m\le5\), and the numerical constants \(h_2^{-1}(1/4)\) and \(h_2^{-1}(1/2)\).
 
 The second pass includes three further reproducible checks. All four scripts accompany the source and run with \texttt{make check}; their combined output is recorded in \texttt{validation.txt}.
 \begin{itemize}
@@ -1794,6 +1840,76 @@ J. H{\aa}stad.
 \emph{Efficiently finding small representations for LTFs}.
 ECCC TR25-209, 2025.
 \url{https://eccc.weizmann.ac.il/report/2025/209/}.
+
+\bibitem{Cover65}
+T. M. Cover.
+\emph{Geometrical and statistical properties of systems of linear inequalities with applications in pattern recognition}.
+IEEE Transactions on Electronic Computers EC-14(3):326--334, 1965.
+\url{https://doi.org/10.1109/PGEC.1965.264137}.
+
+\bibitem{Zaslavsky75}
+T. Zaslavsky.
+\emph{Facing up to arrangements: face-count formulas for partitions of space by hyperplanes}.
+Memoirs of the American Mathematical Society 154, 1975.
+
+\bibitem{MPCB14}
+G. Mont\'ufar, R. Pascanu, K. Cho, and Y. Bengio.
+\emph{On the number of linear regions of deep neural networks}.
+NeurIPS 2014.
+\url{https://arxiv.org/abs/1402.1869}.
+
+\bibitem{RPKGS17}
+M. Raghu, B. Poole, J. Kleinberg, S. Ganguli, and J. Sohl-Dickstein.
+\emph{On the expressive power of deep neural networks}.
+ICML 2017.
+\url{https://arxiv.org/abs/1606.05336}.
+
+\bibitem{STR18}
+T. Serra, C. Tjandraatmadja, and S. Ramalingam.
+\emph{Bounding and counting linear regions of deep neural networks}.
+ICML 2018.
+\url{https://arxiv.org/abs/1711.02114}.
+
+\bibitem{HR19}
+B. Hanin and D. Rolnick.
+\emph{Complexity of linear regions in deep networks}.
+ICML 2019.
+\url{https://arxiv.org/abs/1901.09021}.
+
+\bibitem{HTKY97}
+K. Hosaka, Y. Takenaga, T. Kaneda, and S. Yajima.
+\emph{Size of ordered binary decision diagrams representing threshold functions}.
+Theoretical Computer Science 180(1--2):47--60, 1997.
+
+\bibitem{GOWZ10}
+P. Gopalan, R. O'Donnell, Y. Wu, and D. Zuckerman.
+\emph{Fooling functions of halfspaces under product distributions}.
+CCC 2010.
+\url{https://doi.org/10.1109/CCC.2010.29}.
+
+\bibitem{DOS20}
+K. Dinesh, S. Otiv, and J. Sarma.
+\emph{New bounds for energy complexity of Boolean functions}.
+Theoretical Computer Science 845:59--75, 2020.
+\url{https://arxiv.org/abs/1808.07199}.
+
+\bibitem{GPT22}
+S. Gryaznov, P. Pudl\'ak, and N. Talebanfard.
+\emph{Linear branching programs and directional affine extractors}.
+CCC 2022, LIPIcs 234.
+\url{https://doi.org/10.4230/LIPIcs.CCC.2022.4}.
+
+\bibitem{HLT22}
+P. Hajnal, Z. Liu, and G. Tur\'an.
+\emph{Nearest neighbor representations of Boolean functions}.
+Information and Computation 285:104879, 2022.
+\url{https://arxiv.org/abs/2004.01741}.
+
+\bibitem{Barvinok94}
+A. I. Barvinok.
+\emph{A polynomial time algorithm for counting integral points in polyhedra when the dimension is fixed}.
+Mathematics of Operations Research 19(4):769--779, 1994.
+\url{https://doi.org/10.1287/moor.19.4.769}.
 
 \bibitem{Hastad94}
 J. H{\aa}stad.

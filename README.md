@@ -14,8 +14,12 @@ Main statements, with their hypotheses kept separate:
 - **Activity at arbitrary depth.** A leaf-count rectangle theorem for
   separable-comparison trees gives, for inner product on m + m bits,
   `sum_{j <= e} C(q, j) >= 2^{m/2}` where q counts input-reading gates and
-  e is their worst-case activity. Linear size forces linear activity; the
-  known polynomial-size `O(m / log m)`-energy construction is included.
+  e is their worst-case activity. The bound has no depth or weight term and
+  answers a question posed in Uchizawa's 2014 survey. Linear size forces
+  linear activity; the known polynomial-size `O(m / log m)`-energy
+  construction is included. The same theorem holds for bi-monotone queries,
+  recovers the exponential decision-list bounds with exponent m/2, and
+  removes the rank restriction of earlier tree bounds.
 - **Exact scalar capacity.** For one input direction, q scalar queries of
   activity at most e compute f exactly iff the number of monochromatic score
   runs is at most the Hamming-ball size B(q, e). An enumerative-coding

@@ -1,13 +1,13 @@
 Validation record, October 18, 2026
 
 make
-  Three pdflatex passes; 39 pages.
+  Three pdflatex passes; 42 pages.
   Final log: no warnings, no overfull or underfull boxes.
-  All 54 labels resolve; every cite key has a bibitem and all 23 bibitems
+  All 58 labels resolve; every cite key has a bibitem and all 35 bibitems
   are cited.
 
 make check
-  leaf-count rectangle theorem: 10000 random trees, seed 42, 283199 rectangle entries routed to a single leaf
+  leaf-count rectangle theorem: 10000 random separable and bi-monotone trees, seed 42, 291978 rectangle entries routed to a single leaf
   Hadamard rectangle bound: 343 maximal monochromatic rectangles checked for m <= 3
   activation-pattern Hamming-ball bound: 300 random circuits
   depth-three block construction for IP_m: 15 (m, k) pairs, m <= 5, exhaustive inputs
