@@ -4,9 +4,8 @@ Threshold Circuits as Decision Trees and Finite-State Programs
 SUBTITLE
 Exact scalar models, average activity, geometric lower bounds, and counting through additive summaries
 
-AUTHOR FIELD (PROVISIONAL; CONFIRM BEFORE SUBMISSION)
+AUTHOR
 Samuel Schlesinger
-(The current manuscript carries the placeholder "Research draft prepared for Samuel Schlesinger".)
 
 KEYWORDS
 threshold circuits; linear decision trees; energy complexity; activation patterns; communication complexity; branching programs; hyperplane cuttings; lattice zonotopes; exact counting; total unimodularity
@@ -50,7 +49,7 @@ total-gate lower bound is established.
 
 STATUS
 Second research pass, October 18, 2026. Historical priority of the
-formulations and applications, and final attribution, require author review.
+formulations and applications requires author review.
 No proof-assistant verification of the new results is claimed; the prior
 capacity theorem and explicit family are formalized in the author's
 complexitylib. See REVIEW.md and README.md.
