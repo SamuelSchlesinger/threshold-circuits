@@ -1,9 +1,9 @@
 Validation record, October 18, 2026
 
 make
-  Three pdflatex passes; 37 pages.
+  Three pdflatex passes; 39 pages.
   Final log: no warnings, no overfull or underfull boxes.
-  All 52 labels resolve; every cite key has a bibitem and all 17 bibitems
+  All 54 labels resolve; every cite key has a bibitem and all 23 bibitems
   are cited.
 
 make check

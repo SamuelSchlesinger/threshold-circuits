@@ -73,8 +73,12 @@ The all-splits capacity theorem and its explicit family are prior results
 from the author's `complexitylib` Lean development and are reproduced with
 attribution; the enumerative coding scheme, hyperplane cutting theorem, and
 lattice-zonotope formula are classical ingredients cited in the text. The
-remaining statements are proved in the manuscript. Historical priority of
-the formulations and applications remains unresolved, the author field is a
-placeholder pending confirmation, and no proof-assistant verification of the
-new results is claimed. The review record lists the open items and a plan
-for formalizing parts of the paper in Lean 4.
+remaining statements are proved in the manuscript. A targeted priority check
+(recorded in REVIEW.md) found no earlier depth-independent energy bound and
+no earlier unrestricted exponential leaf bound for linear decision trees
+computing inner product; the 2014 survey of Uchizawa poses the depth-free
+bound as an open question. Priority of the remaining formulations is
+unresolved, the author field is a placeholder pending confirmation, and no
+proof-assistant verification of the new results is claimed. The review
+record lists the open items and a plan for formalizing parts of the paper
+in Lean 4.

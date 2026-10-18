@@ -9,10 +9,11 @@ unchanged except for the four edits listed under "Changes made".
 
 ### Build
 
-The draft compiled on the first attempt. After the edits, three `pdflatex`
-passes produce a 37-page PDF with no warnings, no overfull or underfull
-boxes, all 52 labels resolving, and every one of the 17 bibliography keys
-cited. `validation.txt` records the final build and check output.
+The draft compiled on the first attempt. After the edits below and the
+priority-check additions, three `pdflatex` passes produce a 39-page PDF with
+no warnings, no overfull or underfull boxes, all 54 labels resolving, and
+every one of the 23 bibliography keys cited. `validation.txt` records the
+final build and check output.
 
 ### Bibliography
 
@@ -119,11 +120,62 @@ checked in detail:
   entropy identities of Theorems 5.2 and 5.5 beyond the run and tail
   estimates, and the running-time claims of Section 9 are not exercised.
 
+## Priority check, October 18, 2026
+
+The question was whether the draft's headline inequality, the depth-free and
+weight-free size–energy tradeoff of Theorem 3.2, and the `2^{m/2}` leaf bound
+for linear decision trees behind it, already exist. Sources read in full text
+or abstract: Uchizawa, Douglas, Maass (Neural Computation 2006), Uchizawa's
+survey (Interdisciplinary Information Sciences 2014), Uchizawa and Abe (MFCS
+2023, arXiv 2107.00223), Uchizawa and Takimoto (TCS 2008; MFCS 2011; SOFSEM
+2015, abstracts), Gröger and Turán (ICALP 1991, abstract), Turán and Vatan
+(1997, as cited), Chattopadhyay, Mahajan, Mande, Saurabh (CJTCS 2020), and
+Dahiya, Vignesh K, Mahajan, Sreenivasaiah (IPL 2024), plus three web searches
+for unrestricted leaf-count bounds.
+
+Findings:
+
+- The pattern-to-tree conversion is Lemma 1 of Uchizawa, Douglas, and Maass:
+  a circuit with `2^H` attainable gate-state patterns has a threshold decision
+  tree with `2^H` leaves and depth at most the gate count. They use it only
+  for upper bounds (energy reduction, depth-three collapse).
+- Prior energy lower bounds for inner product all carry a depth factor:
+  `s >= 2^{Omega(m / e^d)}` (Uchizawa–Takimoto 2008, as restated by
+  Uchizawa–Abe) and `log rk(M_C) <= e d (log s + log w + log m)`
+  (Uchizawa–Abe 2023, Theorem 1), the latter also needing integer weights at
+  most w. Uchizawa–Abe's introduction says these bounds "break down when we
+  consider threshold circuits of larger depth and energy".
+- The 2014 survey's open-problems section asks, verbatim, whether the depth
+  term "can also be dropped off, which implies a lower bound for threshold
+  circuits of bounded energy, but with unbounded weight and depth". Theorem
+  3.2 is that statement.
+- Linear decision tree size for inner product with unrestricted weights: the
+  best recorded bound is `exp(Omega(sqrt m))`, via the Turán–Vatan rank–depth
+  tradeoff (Dahiya et al. 2024 record it in this form). Uchizawa–Takimoto
+  obtain `2^{Omega(m / log w)}` only for total absolute weight at most w
+  (2015, improving their 2011 energy-based argument), which indicates the
+  unrestricted exponential bound was not known to them. No later unrestricted
+  bound was found.
+- The quantile rectangle step is in CMMS20 (Lemma 16) for decision lists;
+  the leaf-weighted induction that extends it to trees was not found.
+
+Conclusion: no earlier depth-independent energy bound and no earlier
+unrestricted `2^{Omega(m)}` leaf bound were located. The manuscript now states
+the comparison precisely in Section 1.2, adds a comparison paragraph and the
+general rectangle-density corollary after Theorem 3.2, and cites UT08, UT11,
+UT15, GT91, Muroga 1971, and Håstad 1994. The paywalled 2011 paper's exact
+exponent was not retrievable; it is cited for its method and weight
+restriction only. A search is not a proof of priority, and the ledger says so.
+
+For the other components, two quick searches found nothing on enumerative
+coding inside threshold circuits or on zonotope-based counting for threshold
+circuits; those searches were shallow and the draft's own caveat stands.
+
 ## Check-script coverage
 
 | Script | Statements exercised | Method |
 |---|---|---|
-| `weighted_pivot_validation.py` | Lemma 2.1, Theorem 2.2, Lemma 2.4, Lemma 3.1 with Theorem 3.2, Section 3.3, Corollary 3.3 constants | Random trees with tied scores; exhaustive rectangles for m <= 3; random circuits; exhaustive block circuits for m <= 5 |
+| `weighted_pivot_validation.py` | Lemma 2.1, Theorem 2.2, Lemma 2.4, Lemma 3.1 with Theorem 3.2, Section 3.3, Corollary 3.4 constants | Random trees with tied scores; exhaustive rectangles for m <= 3; random circuits; exhaustive block circuits for m <= 5 |
 | `interval_entropy_validation.py` | Lemma 5.1, Lemma 5.6, the inequalities in Corollary 5.3 and Theorem 5.5 | All orders for m <= 2 and sampled orders to m = 7; every sign sequence of length <= 8; exact tails for m <= 5 |
 | `zonotope_validation.py` | Lemma 9.2, Proposition 9.5, Corollary 6.2's identity, Theorem 9.3, Theorem 6.1, Proposition 6.3, Theorem 11.1 | Exact rational arithmetic; gcd-of-minors lattice indices; dictionary counting against enumeration; all faces of the gate cube |
 | `scalar_coding_validation.py` | Theorem 4.1 (construction), Theorem 4.3 (coding and gate level), Corollary 4.4 | Exhaustive over q <= 10 ranks and all inputs for N <= 9 |
