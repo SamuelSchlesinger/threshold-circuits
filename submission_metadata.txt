@@ -1,0 +1,56 @@
+TITLE
+Threshold Circuits as Decision Trees and Finite-State Programs
+
+SUBTITLE
+Exact scalar models, average activity, geometric lower bounds, and counting through additive summaries
+
+AUTHOR FIELD (PROVISIONAL; CONFIRM BEFORE SUBMISSION)
+Samuel Schlesinger
+(The current manuscript carries the placeholder "Research draft prepared for Samuel Schlesinger".)
+
+KEYWORDS
+threshold circuits; linear decision trees; energy complexity; activation patterns; communication complexity; branching programs; hyperplane cuttings; lattice zonotopes; exact counting; total unimodularity
+
+ABSTRACT (LATEX)
+We interpret threshold circuits through their activation transcripts, adaptive
+scalar comparisons, finite-state bias vectors, and additive input summaries.
+These representations support lower bounds, exact normalizations, and counting
+algorithms, with distinct hypotheses for each conclusion.
+
+For arbitrary-depth, arbitrary-real-weight circuits computing inner product
+modulo two on $m+m$ bits, a leaf-count rectangle theorem gives
+$\sum_{j=0}^{e}\binom qj\ge2^{m/2}$, where $q$ counts gates reading original
+inputs and $e$ is their worst-case activity. Under the additional restriction
+that only one party's input-weight vectors are collinear, we prove a
+distribution-sensitive result: the corresponding transcript has conditional
+entropy greater than $m-2$. With randomized error at most $\epsilon<1/2$, its
+conditional entropy is at least $(1-2\epsilon)m-4\log_2m-14$; the leading
+coefficient is optimal for the randomized model. Polynomially many
+input-reading gates therefore require $\Omega(m/\log m)$ average activity in
+this restricted model.
+
+For a fixed scalar input direction, we characterize the exact query--activity
+capacity by the Hamming-ball size $B(q,e)$. A polynomial-size
+enumerative-coding construction realizes any threshold circuit using $N+1$
+collinear input-reading gates with activity at most $\lceil N/2\rceil$.
+Combining this construction with a prior all-splits rectangle-free family
+gives an asymptotically tight scalar resource curve. Hyperplane cuttings yield
+exponential gate lower bounds for bounded input rank and bounded predecessor
+fan-in, allowing arbitrarily many directions within the rank bound.
+
+Finally, integer zonotopes bound the number of additive summaries by
+$(\mathrm{e} NW/\sqrt r)^r$, giving an exact $\#\mathrm{SAT}$ algorithm for
+rational circuits whose input rows lie in a supplied bounded-integer rank-$r$
+span. At $r\sim N/\log_2N$ and $W=N^{o(1)}$, the exponential factor is
+$2^{N/2+o(N)}$. Totally unimodular summaries yield an exact matroid state
+count; totally unimodular internal cuts yield Fibonacci-size linear-query
+programs. Polyhedral, integer-programming, and quadratic unique-sink
+interpretations complete the representation map. No unrestricted superlinear
+total-gate lower bound is established.
+
+STATUS
+Second research pass, October 18, 2026. Historical priority of the
+formulations and applications, and final attribution, require author review.
+No proof-assistant verification of the new results is claimed; the prior
+capacity theorem and explicit family are formalized in the author's
+complexitylib. See REVIEW.md and README.md.

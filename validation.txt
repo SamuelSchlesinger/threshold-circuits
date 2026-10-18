@@ -1,0 +1,41 @@
+Validation record, October 18, 2026
+
+make
+  Three pdflatex passes; 37 pages.
+  Final log: no warnings, no overfull or underfull boxes.
+  All 52 labels resolve; every cite key has a bibitem and all 17 bibitems
+  are cited.
+
+make check
+  leaf-count rectangle theorem: 10000 random trees, seed 42, 283199 rectangle entries routed to a single leaf
+  Hadamard rectangle bound: 343 maximal monochromatic rectangles checked for m <= 3
+  activation-pattern Hamming-ball bound: 300 random circuits
+  depth-three block construction for IP_m: 15 (m, k) pairs, m <= 5, exhaustive inputs
+  constants: h2^-1(1/4) = 0.04169269027, h2^-1(1/2) = 0.1100278644, 2790 Hamming-ball estimates
+  weighted_pivot_validation: all checks passed
+  ordered inner-product runs: 826 column orders (all 26 for m = 1, 2; 160 sampled for m = 3..7), largest conditional run entropy 1.306174414 bits, 244676 exact anchor probabilities
+  dyadic certificates: 39480 interval/eta pairs over every sign sequence of length 1, 2, 4, 8; 98072 anchor/location conditions
+  biased-interval tails: 43648 exact tail probabilities, 43648 interval/bias maximizations, m <= 5
+  elementary inequalities: 206722 grid checks
+  interval_entropy_validation: all checks passed
+  integer additive images: 400 full-rank matrices, including 161 totally unimodular cases
+  graph incidence summaries: 150 oriented graphs, image size = forest count
+  Fibonacci identity (P1): s = 1..100
+  exact counting: 100 rational circuits with supplied summaries, 45 with nonconstant output, all counts match enumeration
+  pending-bias program: 200 circuits simulated
+  width-two 3-CNF encodings: 100 formulas
+  quadratic unique-sink potential: 264 (circuit, input) pairs, every face checked
+  zonotope_validation: all checks passed
+  ordered comparison trees: 448 (q, e, L) triples with q <= 6
+  one-hot prefix indicators: 5461 (h, z) pairs
+  enumerative coding: 66 parameter pairs with q <= 10, 11264 ranks, 103423 comparisons, 114687 prefix/final invariants
+  gate-level normalization: 484 feasible (N, q, e) triples with N <= 9 and q <= 12, 32428 encodings and decodings, 245548 decoder gates
+  sharp capacity thresholds: N = 1..9
+  scalar_coding_validation: all checks passed
+
+The four scripts exercise proof certificates and construction edge cases on
+finite instances (seeds 42 and 20261018). They compare constructions with
+exhaustive enumeration and verify the exact inequalities used in the proofs;
+they do not prove any statement for unbounded parameters, and no proof
+assistant verification of the new results is claimed. Total running time is
+about fifteen seconds with CPython 3.

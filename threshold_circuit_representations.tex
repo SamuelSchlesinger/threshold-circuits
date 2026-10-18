@@ -1,0 +1,1772 @@
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{booktabs,tabularx,array}
+\usepackage{enumitem}
+\usepackage{microtype}
+\usepackage[dvipsnames]{xcolor}
+\usepackage[colorlinks=true,linkcolor=MidnightBlue,citecolor=MidnightBlue,urlcolor=MidnightBlue]{hyperref}
+\usepackage{bookmark}
+\hypersetup{
+ pdftitle={Threshold Circuits as Decision Trees and Finite-State Programs},
+ pdfauthor={Research draft prepared for Samuel Schlesinger},
+ pdfsubject={Scalar coding, average activity, geometric lower bounds, and exact counting},
+ pdfkeywords={threshold circuits, linear decision trees, energy complexity, branching programs}
+}
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small Threshold circuits: representations and lower bounds}
+\fancyhead[R]{\small Research draft}
+\fancyfoot[C]{\thepage}
+\setlength{\headheight}{14pt}
+\setlength{\parskip}{4pt}
+\setlength{\parindent}{0pt}
+\setlist{itemsep=3pt,topsep=5pt}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{proposition}[theorem]{Proposition}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{remark}[theorem]{Remark}
+\newcommand{\bits}{\{0,1\}}
+\newcommand{\R}{\mathbb R}
+\newcommand{\Z}{\mathbb Z}
+\newcommand{\F}{\mathbb F}
+\newcommand{\ind}[1]{\mathbf 1[#1]}
+\newcommand{\ip}{\operatorname{IP}}
+\newcommand{\rank}{\operatorname{rank}}
+\newcommand{\poly}{\operatorname{poly}}
+\newcommand{\supp}{\operatorname{supp}}
+\newcommand{\Vol}{\operatorname{Vol}}
+\newcommand{\Eul}{\mathrm e}
+\newcommand{\ceil}[1]{\left\lceil #1\right\rceil}
+\newcommand{\floor}[1]{\left\lfloor #1\right\rfloor}
+\DeclareMathOperator{\diag}{diag}
+\DeclareMathOperator{\Var}{Var}
+\DeclareMathOperator{\Cov}{Cov}
+\title{\bfseries Threshold Circuits as Decision Trees and Finite-State Programs\\[5pt]
+\large Exact scalar models, average activity, geometric lower bounds,\\
+and counting through additive summaries}
+\author{Research draft prepared for Samuel Schlesinger}
+\date{18 October 2026}
+\begin{document}
+\maketitle
+\begin{abstract}
+We interpret threshold circuits through their activation transcripts, adaptive scalar comparisons, finite-state bias vectors, and additive input summaries. These representations support lower bounds, exact normalizations, and counting algorithms, with distinct hypotheses for each conclusion.
+
+For arbitrary-depth, arbitrary-real-weight circuits computing inner product modulo two on \(m+m\) bits, a leaf-count rectangle theorem gives
+\[
+ \sum_{j=0}^{e}\binom qj\ge2^{m/2},
+\]
+where \(q\) counts gates reading original inputs and \(e\) is their worst-case activity. Under the additional restriction that only one party's input-weight vectors are collinear, we prove a distribution-sensitive result: the corresponding transcript has conditional entropy greater than \(m-2\). With randomized error at most \(\epsilon<1/2\), its conditional entropy is at least \((1-2\epsilon)m-4\log_2m-14\); the leading coefficient is optimal for the randomized model. Polynomially many input-reading gates therefore require \(\Omega(m/\log m)\) average activity in this restricted model.
+
+For a fixed scalar input direction, we characterize the exact query--activity capacity by the Hamming-ball size \(B(q,e)\). A polynomial-size enumerative-coding construction realizes any threshold circuit using \(N+1\) collinear input-reading gates with activity at most \(\lceil N/2\rceil\). Combining this construction with a prior all-splits rectangle-free family gives an asymptotically tight scalar resource curve. Hyperplane cuttings yield exponential gate lower bounds for bounded input rank and bounded predecessor fan-in, allowing arbitrarily many directions within the rank bound.
+
+Finally, integer zonotopes bound the number of additive summaries by \((\Eul NW/\sqrt r)^r\), giving an exact \(\#\mathrm{SAT}\) algorithm for rational circuits whose input rows lie in a supplied bounded-integer rank-\(r\) span. At \(r\sim N/\log_2N\) and \(W=N^{o(1)}\), the exponential factor is \(2^{N/2+o(N)}\). Totally unimodular summaries yield an exact matroid state count; totally unimodular internal cuts yield Fibonacci-size linear-query programs. Polyhedral, integer-programming, and quadratic unique-sink interpretations complete the representation map. No unrestricted superlinear total-gate lower bound is established.
+\end{abstract}
+\begin{center}
+\small\textbf{Status: second research pass.} Explicit proofs and reproducible finite checks.
+Historical priority of the formulations and applications proved here remains unresolved.
+No proof-assistant verification of the new results is claimed.
+\end{center}
+\newpage
+{\small\setlength{\parskip}{0pt}\tableofcontents}
+\newpage
+
+\section{Introduction and scope}
+A threshold circuit is naturally a directed acyclic graph, but its graph does not expose every useful computational resource. The circuit also generates a Boolean transcript, carries a vector of pending weighted biases across each topological cut, partitions the input cube into polyhedral cells, and solves a uniquely extendable system of gate constraints. These interpretations lead to different lower-bound measures.
+
+The useful question is quantitative: which parameter of the new representation is controlled by the circuit, and which parameter is forced to be large by a target function? We first answer this for attainable activation patterns using a leaf-sensitive rectangle argument. We then use the same representations to characterize scalar query costs, prove average-activity bounds under one-sided input rank one, and count satisfying inputs when a finite additive summary is small. A representation is useful here only after its preserved resource and its quantitative consequence are specified.
+
+\subsection{Main results}
+Let \(C\) be a threshold circuit on \(N\) input bits. Write \(s\) for its total gate count, \(q\) for the number of gates with a nonzero direct input-weight vector, \(P(C)\) for the number of attainable activation patterns of those \(q\) gates, and
+\[
+ e(C)=\max_x\sum_{i\text{ input-reading}}z_i(x).
+\]
+The full gate transcript is determined by this restricted transcript.
+
+Our principal chain of results is
+\[
+ \begin{aligned}
+ \text{small activity}
+ &\ \Longrightarrow\ P(C)\le\sum_{j=0}^{e(C)}\binom qj\\
+ &\ \Longrightarrow\ \text{a linear decision tree with few leaves}\\
+ &\ \Longrightarrow\ \text{a large monochromatic rectangle}.
+ \end{aligned}
+\]
+For \(\ip_m(x,y)=\sum_{i=1}^m x_i y_i\bmod2\), the last implication contradicts the Hadamard-matrix rectangle bound unless \(P(C)\ge2^{m/2}\). This produces an unconditional size--activity tradeoff at arbitrary depth and arbitrary weight magnitude.
+
+A second result concerns \emph{distinct input directions}, even when occurrences of those directions are interleaved throughout the circuit. Suppose direction \(a\) occurs at \(q_a\) input-reading gates. Let \(D_i\) count the distinct subset sums of the internal weights entering gate \(i\), and put \(T_a=\sum_{i\text{ in direction }a}D_i\). For every Boolean function with the all-splits rectangle property defined in Section~\ref{sec:capacity}, we prove
+\[
+ 2^N<4\kappa^2\prod_a\min\{4^{q_a},\,4T_a\}.                 \tag{1}
+\]
+This theorem permits arbitrary real coefficients. Bounded predecessor fan-in, bounded integer internal weights, and few repeated coefficient values each make the offset menus small and yield stronger consequences.
+
+\paragraph{Results added in the second pass.}
+The further results concern four different resources; their hypotheses must be kept separate.
+\begin{enumerate}
+ \item \textbf{Exact scalar capacity.} For a fixed nonzero input direction \(w\), let \(L_w(f)\) count monochromatic runs along the ordered attainable scores. With input-free gates unrestricted, \(q\) scalar input-reading gates of activity at most \(e\) compute \(f\) exactly when
+ \[
+ L_w(f)\le B(q,e)=\sum_{j=0}^{e}\binom qj.
+ \]
+ A universal construction achieves size \(S+O(qe+N)\) whenever \(B(q,e)\ge2^N\), for any original size-\(S\) circuit. It gives matching asymptotic query--activity rates for the prior explicit family (Section~\ref{sec:scalar_exact}).
+ \item \textbf{Entropy and average activity.} For uniform inner-product inputs \(U,V\), if all direct \(V\)-input vectors are collinear, their transcript \(Z\) satisfies \(H(Z\mid U)>m-2\). With an independent random seed \(R\) and error \(\epsilon\), the lower bound becomes
+ \[
+ H(Z\mid U,R)\ge(1-2\epsilon)m-4\log_2m-14.
+ \]
+ This remains true when the scalar direction changes with the seed, and implies bounds on mean deviations from every \(U,R\)-dependent activation baseline (Section~\ref{sec:one_sided_entropy}).
+ \item \textbf{Input rank and threshold menus.} A catalogue of \(H\) comparisons with input rank at most a fixed \(r\) satisfies \(2^N<8C_r\kappa^2H^r\) on the prior all-splits family. With at most \(k\) internal predecessors at each input-reading gate, this gives \(q\ge2^{N/r-o(N)}\) for fixed \(r,k\) (Section~\ref{sec:rankcut}).
+ \item \textbf{Exact counting.} If a supplied integer rank-\(r\) summary basis has entries bounded by \(W\), a rational circuit admits a counting algorithm with exponential factor at most
+ \[
+ \min\{2^N,(\Eul NW/\sqrt r)^r\}.
+ \]
+ Under total unimodularity, the exact state count is the number of independent column sets, and sublinear rank gives a subexponential state space (Section~\ref{sec:zonotope-counting}).
+\end{enumerate}
+
+The scalar constructions bound \emph{input-reading} activity; their internal gates also consume total energy. The algorithmic statements require finite rational descriptions. The rank and average-activity theorems are structural results and do not apply to unrestricted input access.
+
+\subsection{Relation to prior work}
+The triangular-matrix rectangle method of Roychowdhury, Orlitsky, and Siu gives a linear threshold gate lower bound for inner product; with \(N=2m\) total input bits, their stated lower bound is \(N/4\) gates \cite{ROS94}. We recover that gate-count scale, while retaining the substantially more informative activation-pattern parameter.
+
+The conversion from attainable circuit patterns to a linear decision tree is present in Uchizawa, Douglas, and Maass \cite{UDM06}. The quantile rectangle primitive appears in the decision-list work of Chattopadhyay, Mahajan, Mande, and Saurabh \cite[Lemma 16]{CMMS20}, building on Tur\'an and Vatan \cite{TV97}. Our proof combines that primitive with an induction weighted by subtree leaf counts. Dahiya et al.\ explicitly record an \(\exp(\Omega(\sqrt m))\) size lower bound for unrestricted linear decision trees computing inner product \cite{Dahiya23}. The \(2^{m/2}\) bound proved here is stronger than that recorded statement. This comparison does not by itself establish historical priority.
+
+Uchizawa's survey states depth-dependent energy bounds and explicitly raises the removal of the depth dependence \cite{Uchizawa14}. More recent work of Uchizawa and Abe studies size, depth, energy, and bounded weights through communication-matrix rank \cite{UA23}. Our argument uses monochromatic rectangles and does not require a weight or depth bound.
+
+For the direction/offset results we use, and reprove, the all-splits capacity theorem from Schlesinger's existing threshold development \cite{Schlesinger26}. We treat that theorem and its explicit disperser family as prior work. These structural results do not supersede unrestricted gate lower bounds. Likewise, the \(N^{2.5-\epsilon}\) lower bound of Chen, Tal, and Wang concerns depth two and a function in \(E^{NP}\), and is a separate result \cite{CTW26}.
+
+The second pass also uses three classical ingredients with explicit attribution. The sparse scalar compiler implements Cover's enumerative source coding inside a threshold circuit \cite{Cover73}. The rank--catalogue theorem applies Chazelle's hyperplane-cutting theorem \cite{Chazelle93}. The exact-counting bound uses the lattice-zonotope formula expressed through the arithmetic Tutte polynomial \cite{DM11}. The coding scheme, cutting theorem, and lattice-point formula are prior results; the circuit constructions and consequences stated in this manuscript are proved in full. No exhaustive bibliographic-priority conclusion is asserted for those applications or for the ordered-run entropy estimates.
+
+\section{A rectangle theorem controlled by leaf count}\label{sec:leaf}
+Let \(X,Y\) be finite nonempty sets. A \emph{separable comparison} is a query
+\[
+ g(x,y)=\ind{\alpha(x)+\beta(y)\ge\theta}
+\]
+for arbitrary real-valued \(\alpha,\beta\). Every linear threshold query on a partitioned Boolean input is a separable comparison. A binary comparison tree has such a query at each internal node and a Boolean label at each leaf. Its size in this section is its number of leaves.
+
+\begin{lemma}[Quantile alternative]\label{lem:quantile}
+Let \(A\subseteq X\), \(B\subseteq Y\) be nonempty, and let \(0<a<1\).
+There is either a \(0\)-rectangle \(A_0\times B_0\) for \(g\) with
+\[
+ |A_0|\ge a|A|,\qquad |B_0|\ge a|B|,
+\]
+or a \(1\)-rectangle \(A_1\times B_1\) with
+\[
+ |A_1|\ge(1-a)|A|,\qquad |B_1|\ge(1-a)|B|.
+\]
+\end{lemma}
+\begin{proof}
+Sort \(A=(x_1,\ldots,x_u)\) by nondecreasing \(\alpha\), and sort \(B=(y_1,\ldots,y_v)\) by nondecreasing \(\beta\). Set \(i=\lceil au\rceil\), \(j=\lceil av\rceil\).
+If \(g(x_i,y_j)=0\), the two prefixes of lengths \(i,j\) form the desired \(0\)-rectangle.
+Otherwise the two inclusive suffixes beginning at \(i,j\) form a \(1\)-rectangle. Their sizes satisfy \(u-i+1\ge(1-a)u\) and \(v-j+1\ge(1-a)v\).
+Monotonicity of the two score sequences proves constancy. Ties and equality at the threshold cause no exception.
+\end{proof}
+
+\begin{theorem}[Leaf-count rectangle theorem]\label{thm:leaf}
+Suppose a binary separable-comparison tree has \(L\ge1\) leaves. For every nonempty product domain \(A\times B\), some rectangle \(A'\times B'\) is routed entirely to one leaf and satisfies
+\[
+ |A'|\ge\frac{|A|}{L},\qquad |B'|\ge\frac{|B|}{L}.       \tag{2}
+\]
+\end{theorem}
+\begin{proof}
+Induct on \(L\). A one-leaf tree proves the claim immediately.
+Let the root's \(0\)- and \(1\)-subtrees have \(L_0,L_1\ge1\) leaves, where \(L=L_0+L_1\).
+Apply Lemma~\ref{lem:quantile} with \(a=L_0/L\).
+It gives a branch \(b\in\{0,1\}\) and a rectangle \(A_b\times B_b\) routed to that branch such that
+\[
+ |A_b|\ge\frac{L_b}{L}|A|,\qquad
+ |B_b|\ge\frac{L_b}{L}|B|.
+\]
+Apply the induction hypothesis to the subtree on that rectangle. The resulting leaf rectangle has sides at least
+\[
+ \frac{|A_b|}{L_b}\ge\frac{|A|}{L},
+ \qquad
+ \frac{|B_b|}{L_b}\ge\frac{|B|}{L}.
+\]
+This completes the induction. Equivalently, the successive factors \(L_b/L\) telescope along the selected root-to-leaf path.
+\end{proof}
+
+The induction is valid on every restricted rectangle. It does not assume that an entire leaf region is itself a rectangle; leaf regions can be intersections of many halfspaces. It extracts one rectangle contained in one region.
+
+\begin{corollary}\label{cor:leafarea}
+If every monochromatic rectangle for \(f:X\times Y\to\bits\) has at most \(R\) entries, every separable-comparison tree computing \(f\) has
+\[
+ L\ge\sqrt{\frac{|X||Y|}{R}}.
+\]
+In terms of the largest monochromatic rectangle density \(\rho(f)=R/(|X||Y|)\), this is \(L\ge\rho(f)^{-1/2}\).
+\end{corollary}
+
+\paragraph{Product distributions.}
+The same statement holds with cardinality fractions replaced by conditional probabilities under any product distribution. Choose a quantile with cumulative mass at least \(a\) and strictly preceding mass at most \(a\). Its inclusive suffix has mass at least \(1-a\). The induction is unchanged. In particular, if every monochromatic rectangle has product measure at most \(\rho\), then \(L\ge\rho^{-1/2}\).
+
+\subsection{Inner product}
+\begin{lemma}[Hadamard rectangle bound]\label{lem:IPrectangle}
+Every monochromatic rectangle for \(\ip_m:\bits^m\times\bits^m\to\bits\) has at most \(2^m\) entries.
+\end{lemma}
+\begin{proof}
+Let \(H_{x,y}=(-1)^{x\cdot y}\). Orthogonality of characters gives \(HH^\mathsf T=2^m I\), so \(\|H\|_2=2^{m/2}\).
+If \(A\times B\) is monochromatic, then
+\[
+ |A||B|
+ =|\mathbf1_A^\mathsf T H\mathbf1_B|
+ \le2^{m/2}\sqrt{|A||B|}.
+\]
+Divide and square. The bound is attained by the \(0\)-rectangle \(\{0^m\}\times\bits^m\).
+\end{proof}
+
+\begin{corollary}\label{cor:IPtree}
+Every binary linear decision tree computing \(\ip_m\) has at least \(2^{m/2}\) leaves and at least \(\lceil2^{m/2}\rceil-1\) internal nodes. Query weights and tree depth are unrestricted.
+\end{corollary}
+
+\paragraph{Rank--depth consequence.}
+Define the rank of a binary tree recursively: a leaf has rank zero; a node with unequal child ranks has their maximum; equal child ranks \(r\) give rank \(r+1\).
+A depth-\(d\), rank-\(r\) tree has at most
+\[
+ \sum_{j=0}^{r}\binom dj
+\]
+leaves. Indeed, at least one child has rank at most \(r-1\), and induction uses Pascal's recurrence. Thus a linear decision tree for inner product satisfies
+\[
+ \log_2\left(\sum_{j=0}^{r}\binom dj\right)\ge m/2.
+\]
+This consequence requires no separate rank-based rectangle argument.
+
+\section{Activation patterns and energy at arbitrary depth}\label{sec:energy}
+Number the circuit gates topologically:
+\[
+ z_i(x)=\ind{a_i\cdot x+\sum_{j<i}b_{ij}z_j(x)\ge\theta_i},
+ \qquad 1\le i\le s.                                    \tag{3}
+\]
+All coefficients are arbitrary reals. Gates with \(a_i\ne0\) are \emph{input-reading}; let \(I\) be their index set and \(q=|I|\).
+The output is the final gate \(z_s\), after discarding irrelevant gates and ordering the designated output last if necessary. The activation-pattern and scalar-capacity arguments also permit an arbitrary fixed Boolean readout of the transcript. The pending-bias simulation in Section~\ref{sec:bias} uses the final-gate convention.
+All logarithms are base two unless a natural logarithm is explicitly indicated; \(\Eul=\exp(1)\).
+
+\begin{lemma}[Transcript tree]\label{lem:transcript}
+There is a binary linear decision tree of depth at most \(q\), with at most \(P(C)\) leaves, computing the circuit output. Here
+\[
+ P(C)=|\{(z_i(x))_{i\in I}:x\in\bits^N\}|.
+\]
+\end{lemma}
+\begin{proof}
+Process gates in topological order. Once previous gate values have been fixed by a path, the next input-reading gate is a linear threshold query on \(x\), with its previous-gate contribution incorporated into its threshold. An input-free gate has a determined output and needs no query. Unfold this process, and remove branches reached by no Boolean input. Suppress unary nodes. Each surviving leaf corresponds to an attainable restricted transcript, and the entire gate transcript can be reconstructed from it by topological evaluation.
+\end{proof}
+
+\begin{theorem}[Patterns and size--energy tradeoff]\label{thm:energy}
+Every threshold circuit computing \(\ip_m\) satisfies
+\[
+ P(C)\ge2^{m/2}.
+\]
+For its worst-case input-reading activity \(e=e(C)\),
+\[
+ \boxed{\quad
+ \sum_{j=0}^{e}\binom qj\ge2^{m/2}.
+ \quad}                                                  \tag{4}
+\]
+For \(m\ge1\), necessarily \(e\ge1\), and
+\[
+ \boxed{\quad
+ e\log_2(\Eul q/e)\ge m/2,
+ \qquad q\ge\frac e{\Eul}\,2^{m/(2e)}.
+ \quad}                                                  \tag{5}
+\]
+These statements impose no bound on depth, real coefficient magnitude, or the number of input-free gates.
+\end{theorem}
+\begin{proof}
+The pattern bound follows from Lemma~\ref{lem:transcript} and Corollary~\ref{cor:IPtree}.
+All restricted transcripts lie in the radius-\(e\) Hamming ball about \(0^q\), proving (4).
+For \(1\le e\le q\), put \(t=e/q\le1\). The generating function gives
+\[
+ t^e\sum_{j=0}^e\binom qj
+ \le\sum_{j=0}^q\binom qj t^j
+ =(1+t)^q\le \exp(qt)=\exp(e).
+\]
+Take logarithms and rearrange to obtain (5). This estimate is valid throughout \(1\le e\le q\).
+\end{proof}
+
+Let \(E(C)\) count all active gates. Since \(e(C)\le E(C)\) and \(q\le s\), the same Hamming-ball argument applied to the full transcript gives
+\[
+ \sum_{j=0}^{E(C)}\binom sj\ge2^{m/2},
+ \qquad E(C)\log_2(\Eul s/E(C))\ge m/2.                   \tag{6}
+\]
+
+\subsection{Quantitative consequences}
+For constant \(e\), (5) is exponential in \(m\). If \(q\le m^c\) for a fixed constant \(c\), it gives \(e=\Omega(m/\log m)\).
+There is a sharper conclusion at linear size.
+
+Write \(h_2(p)=-p\log_2p-(1-p)\log_2(1-p)\), and let \(h_2^{-1}\) denote its inverse on \([0,1/2]\). The standard Hamming-ball estimate is
+\[
+ \sum_{j=0}^{u}\binom vj\le2^{v h_2(u/v)}
+ \qquad(0\le u\le v/2).                                  \tag{7}
+\]
+It follows directly from the binomial generating function with \(t=u/(v-u)\).
+
+\begin{corollary}[Linear activity in linear size]\label{cor:linearenergy}
+For even \(N=2m\), every threshold circuit computing \(\ip_m\) with at most \(N\) gates has
+\[
+ E(C)\ge h_2^{-1}(1/4)\,N
+       =0.04169269027\ldots\,N.
+\]
+The same bound holds for \(e(C)\) if the circuit has at most \(N\) input-reading gates, even with arbitrarily many input-free gates.
+\end{corollary}
+\begin{proof}
+Pad restricted transcripts with zero coordinates to length \(N\), and apply (4) and (7).
+If \(e>N/2\), the claimed bound already holds. Otherwise
+\(N h_2(e/N)\ge m/2=N/4\).
+\end{proof}
+
+More generally, if \(q\le c m\), then \(e\ge c m\,h_2^{-1}(1/(2c))\) whenever \(c\ge1/2\), with the same trivial treatment of \(e>cm/2\). For nonintegral \(cm\), pad to \(\lfloor cm\rfloor\) and use that \(v h_2(e/v)\) increases with \(v\ge2e\).
+
+\paragraph{Choice of baseline.}
+For any fixed \(v\in\bits^q\), replace \(e(C)\) by
+\[
+ e_v(C)=\max_x d_H((z_i(x))_{i\in I},v).
+\]
+Equation (4) still holds, because a Hamming ball has the same size around every center. Thus the obstruction concerns sparse deviations from any fixed activation pattern, not only activity measured relative to zero.
+
+\paragraph{Entropy convention.}
+The quantity forced to be large is \(\log_2P(C)\), equivalently the maximum Shannon entropy over distributions on attainable transcripts. It is not automatically the Shannon entropy induced by uniformly random circuit inputs. Counting rare patterns does not prove a lower bound on average activity under a specified input distribution. Section~\ref{sec:one_sided_entropy} supplies a separate, distribution-sensitive argument under one-sided input rank one, including a bounded-error extension.
+
+\subsection{A matching-order polynomial-size construction}\label{sec:upperenergy}
+The matching-order upper bound is already known \cite[Example 12]{Uchizawa14}. The following variant of its block construction omits intermediate block-output OR gates.
+Choose an integer \(1\le k\le m\), and partition the \(m\) coordinate pairs into \(b=\lceil m/k\rceil\) nonempty blocks of sizes \(k_i\le k\). In block \(i\), place one minterm threshold gate for each local input on which \(\ip_{k_i}=1\). There are
+\[
+ q_i=\frac{4^{k_i}-2^{k_i}}2
+\]
+such gates, and at most one fires in any block. Thus \(q=\sum_iq_i\le b4^k/2\), and the input-reading activity is at most \(b\).
+
+Let \(S\) be the sum of all these minterm outputs. It equals the number of blocks whose local inner product is odd. Introduce gates
+\(t_j=\ind{S\ge j}\), for \(1\le j\le b\), and output
+\[
+ \ind{\sum_{j=1}^b(-1)^{j+1}t_j\ge1}.
+\]
+The alternating partial sum is \(S\bmod2\), which is the desired global inner product.
+There are \(q+b+1\) gates, depth three, and total activity at most \(2b+1\).
+Every input and internal coefficient has magnitude at most one; minterms are represented by sums of literals with the constants absorbed into thresholds.
+
+Choosing \(k=\lfloor\log_2m\rfloor\) for \(m\ge2\) gives
+\[
+ s=O(m^3/\log m),\qquad E=O(m/\log m).
+\]
+Together with Theorem~\ref{thm:energy}, this determines the order of the least possible worst-case energy among polynomial-size threshold circuits for inner product. It does not optimize the exponent of the polynomial size.
+
+\section{An exact scalar model and a universal normalization}\label{sec:scalar_exact}
+
+Fix a nonzero vector \(w\in\R^N\). If a Boolean function \(f\) is constant on every fiber of \(x\mapsto w\cdot x\), list the distinct attainable scores increasingly and let \(L_w(f)\) be the number of maximal monochromatic runs in this list. If a score fiber contains both output values, no circuit whose direct input vectors lie in \(\operatorname{span}\{w\}\) can compute \(f\).
+
+For nonnegative integers \(q,e\), write
+\[
+ B(q,e)=\sum_{j=0}^{\min\{q,e\}}\binom qj,
+ \qquad B(q,e)=0\quad\text{if }e<0.
+\]
+Thus \(B(q,e)\) is the number of length-\(q\) Boolean words of weight at most \(e\).
+
+\begin{theorem}[Exact scalar query--activity capacity]\label{thm:scalar_exact}
+Suppose \(f\) is constant on every score fiber. For \(0\le e\le q\), there is a threshold circuit for \(f\) with exactly \(q\) input-reading gates, all direct input vectors in \(\operatorname{span}\{w\}\), and input-reading activity at most \(e\), if and only if
+\[
+ L_w(f)\le B(q,e).
+\]
+Input-free gates are unrestricted. In the upper construction every nonzero direct input vector can equal \(w\).
+\end{theorem}
+
+\begin{proof}
+Fix an attainable transcript \(z\) of the input-reading gates. Input-free outputs are determined by topological evaluation from this transcript. Fixing \(z\) makes every remaining gate condition a half-line condition on the scalar score. Their intersection is an interval, possibly with open endpoints. Thus each transcript fiber is contiguous in the ordered score set and is monochromatic. The fibers refine the monochromatic runs, and there are at most \(B(q,e)\) transcripts.
+
+Conversely, an ordered comparison tree of depth at most \(q\), with at most \(e\) right branches on every path, can have any prescribed number \(L\) of leaves between \(1\) and \(B(q,e)\). Prove this by induction on \(q\). For \(L=1\), use a leaf. Otherwise \(e\ge1\), and the two subtree capacities are \(B(q-1,e)\) and \(B(q-1,e-1)\). Pascal's identity permits a split of the \(L\) consecutive desired runs into nonempty groups within those capacities. Query a threshold between the groups and recurse; the right branch consumes one unit of activity.
+
+Realize this tree in \(q\) stages. A terminated history is padded by comparisons with a threshold above every attainable score, so all its remaining answers are zero. At stage \(i\), the selected threshold is a function of the previous \(i-1\) answers. For a prefix \(h\), its one-hot indicator is an input-free threshold gate:
+\[
+ p_h=\ind{\sum_{j<i}(2h_j-1)z_j\ge\sum_{j<i}h_j}.
+\]
+The selected threshold is a linear combination of these indicators. Consequently one input-reading gate with direct vector \(w\) performs the stage's comparison. Input-free Boolean postprocessing supplies the output. This construction establishes existence without a bound on input-free gate count.
+\end{proof}
+
+Recall that a function is two-sided \(\kappa\)-rectangle-free if, under every coordinate split, no monochromatic rectangle has at least \(\kappa\) rows and at least \(\kappa\) columns. Section~\ref{sec:capacity} gives the formal capacity setup and the prior explicit family.
+
+\begin{corollary}[Scalar activity for rectangle-free functions]\label{cor:scalar_activity_capacity}
+If \(f\) is nonconstant and two-sided \(\kappa\)-rectangle-free, then
+\[
+ 2^N<16\kappa^2\bigl(L_w(f)-1\bigr).
+\]
+Hence a one-direction circuit with \(q\) input-reading gates and activity \(e\) satisfies
+\[
+ B(q,e)>1+2^{N-2\log_2\kappa-4}.
+\]
+\end{corollary}
+
+\begin{proof}
+Extend the output along the scalar line so that its only changes lie between consecutive monochromatic runs. This gives one scalar block with \(L_w(f)-1\) changes. Apply Theorem~\ref{thm:capacity}, then Theorem~\ref{thm:scalar_exact}.
+\end{proof}
+
+The next theorem gives a polynomial implementation for a universal choice of input direction. Its coding mechanism is the classical lexicographic enumeration and inverse algorithm of Cover~\cite{Cover73}; the resource statement below concerns its realization inside a threshold circuit.
+
+\begin{theorem}[Universal scalar normalization with sparse input activity]\label{thm:scalar_universal}
+Let \(C\) be an \(N\)-input threshold circuit of size \(S\), where \(N\ge1\). Suppose \(1\le e\le q\) and \(B(q,e)\ge2^N\). There is an equivalent threshold circuit of size
+\[
+ S+O(qe+N)
+\]
+with exactly \(q\) input-reading gates, each having direct input vector
+\[
+ w=(1,2,4,\ldots,2^{N-1}),
+\]
+and with at most \(e\) of those gates active on every input. Every remaining gate has zero direct input vector. The new auxiliary integer coefficients have \(O(q)\)-bit representations.
+\end{theorem}
+
+\begin{proof}
+Put \(t=w\cdot x\), an integer between \(0\) and \(2^N-1\). We recover the word \(z\in\bits^q\) of lexicographic rank \(t\) among words of weight at most \(e\). Before stage \(i\), define
+\[
+ r_i=\sum_{j<i}z_j,
+ \qquad
+ a_i=\sum_{j<i}B(q-j,e-r_j)z_j,
+\]
+and perform the comparison
+\[
+ z_i=\ind{t\ge a_i+B(q-i,e-r_i)}.
+\]
+The invariant is
+\[
+ 0\le r_i\le e,
+ \qquad
+ a_i\le t<a_i+B(q-i+1,e-r_i).
+\]
+It holds initially by the capacity assumption. The zero and one subblocks have respective sizes \(B(q-i,e-r_i)\) and \(B(q-i,e-r_i-1)\), whose sum is the old block size. If \(r_i=e\), the one subblock is empty, so the answer is necessarily zero. This proves preservation. After \(q\) stages the remaining block has size one; therefore
+\[
+ |z|\le e,
+ \qquad t=\sum_{j=1}^q B(q-j,e-r_j)z_j.
+\]
+
+To implement each comparison, first compute the input-free flags
+\[
+ u_{i,r}=\ind{\sum_{j<i}z_j\ge r},
+ \qquad 1\le r\le e+1,
+ \qquad u_{i,0}=1,
+\]
+\[
+ d_{i,r}=\ind{u_{i,r}-u_{i,r+1}\ge1},
+ \qquad 0\le r\le e,
+\]
+including the endpoint flag \(u_{i,e+1}\), which is zero on every reached history. Thus \(d_{i,r}=\ind{r_i=r}\). After stage \(i\), compute
+\[
+ b_{i,r}=\ind{z_i+d_{i,r}\ge2}.
+\]
+Every flag is computed once and may fan out. There are \(O(q(e+1))\) such gates. The stage comparison is precisely the single threshold gate
+\[
+ z_i=\ind{
+ t-\sum_{j<i}\sum_{r=0}^e B(q-j,e-r)b_{j,r}
+   -\sum_{r=0}^e B(q-i,e-r)d_{i,r}\ge0}.
+\]
+Its only raw-input term is \(t\), giving direct vector \(w\).
+
+At completion, the linear form
+\[
+ T=\sum_{j=1}^q\sum_{r=0}^e B(q-j,e-r)b_{j,r}
+\]
+equals \(t\). This is notation for a linear combination of Boolean gate outputs, not an additional gate. Decode the original bits in decreasing order using \(N\) input-free gates:
+\[
+ x'_\ell=\ind{
+ T-\sum_{k=\ell+1}^N2^{k-1}x'_k\ge2^{\ell-1}},
+ \qquad \ell=N,N-1,\ldots,1.
+\]
+Substituting the linear expression for \(T\) makes each of these an ordinary threshold gate. The usual binary expansion argument gives \(x'=x\). Copy \(C\), replacing every raw-input wire by the corresponding decoded gate output. The copied gates are all input-free relative to the original inputs. Counting the auxiliary gates, the \(q\) queries, the \(N\) decoders, and the \(S\) copied gates proves the size bound. All newly introduced coefficients are bounded in magnitude by \(2^{O(q)}\), since \(q\ge N\).
+\end{proof}
+
+\begin{corollary}[One extra scalar query can halve input activity]\label{cor:scalar_extra_query}
+Every size-\(S\), \(N\)-input threshold circuit has an equivalent circuit of size \(S+O(N^2)\) with \(N+1\) input-reading gates, all of direct vector \((1,2,\ldots,2^{N-1})\), and input-reading activity at most \(\lceil N/2\rceil\).
+
+For this fixed direction and \(f(x)=x_1\), the exact optimal activity is \(N\) when \(q=N\), and \(\lceil N/2\rceil\) when \(q=N+1\).
+\end{corollary}
+
+\begin{proof}
+Binomial symmetry gives
+\[
+ B(N+1,\lceil N/2\rceil)\ge2^N,
+ \qquad
+ B(N+1,\lceil N/2\rceil-1)<2^N.
+\]
+Apply Theorem~\ref{thm:scalar_universal} for the upper bound. Along the specified integer scores, \(x_1\) alternates at every consecutive score, so \(L_w(x_1)=2^N\). Theorem~\ref{thm:scalar_exact} proves both lower bounds, since \(B(N,e)<2^N\) for \(e<N\).
+\end{proof}
+
+The activity in this normalization counts the gates that directly read the original inputs. The auxiliary and simulated gates contribute to total circuit energy.
+
+\begin{corollary}[A tight scalar input-activity rate]\label{cor:scalar_tight_rate}
+Let \((f_N)\) be the existing uniformly polynomial-time family with the two-sided \(\kappa(N)\)-rectangle-free property, where \(\log_2\kappa(N)=o(N)\). Let \(E_N(q)\) be the least worst-case input-reading activity among all one-direction threshold circuits for \(f_N\) with exactly \(q\) input-reading gates. The direction and the number of input-free gates may be chosen freely. Then
+\[
+ E_N(N+1)=\left(\frac12+o(1)\right)N.
+\]
+More generally, if \(q_N=(\alpha+o(1))N\) for a fixed \(\alpha>1\), then
+\[
+ E_N(q_N)
+ =\left(\alpha h_2^{-1}(1/\alpha)+o(1)\right)N,
+\]
+where \(h_2^{-1}\) denotes the increasing inverse on \([0,1/2]\). In both cases circuits attaining the stated leading activity rate have polynomial total gate count. The lower bounds allow arbitrary total gate count.
+\end{corollary}
+
+\begin{proof}
+The family is nonconstant for all sufficiently large \(N\). Corollary~\ref{cor:scalar_activity_capacity} forces
+\[
+ \log_2 B(q,e)\ge N-o(N)
+\]
+for every circuit under consideration. If \(e\le q/2\), use the entropy bound
+\[
+ \log_2 B(q,e)\le qh_2(e/q).
+\]
+At \(q=N+1\), this forces \(e\ge(1/2-o(1))N\). When \(q/N\to\alpha>1\), it forces
+\[
+ e\ge\bigl(\alpha h_2^{-1}(1/\alpha)-o(1)\bigr)N.
+\]
+When \(e>q/2\), both lower bounds hold directly.
+
+Uniform polynomial-time computability supplies polynomial-size Boolean circuits for \(f_N\), hence polynomial-size threshold circuits. Corollary~\ref{cor:scalar_extra_query} therefore supplies the upper bound at \(q=N+1\), with input-reading activity at most \(\lceil N/2\rceil\).
+
+For \(q=q_N\), let \(e_N\) be the least integer satisfying \(B(q_N,e_N)\ge2^N\), and put \(p=h_2^{-1}(1/\alpha)\in(0,1/2)\). For every fixed \(\varepsilon>0\) with \(p+\varepsilon<1/2\), Stirling's formula gives
+\[
+ \log_2\binom{q_N}{\lceil(p+\varepsilon)q_N\rceil}
+ =q_Nh_2(p+\varepsilon)+O(\log q_N)>N
+\]
+for all sufficiently large \(N\). Since this binomial coefficient is a term of the corresponding Hamming-ball sum, \(e_N/q_N\le p+\varepsilon+o(1)\). As \(\varepsilon\) is arbitrary, the preceding lower bound yields \(e_N/q_N\to p\). Apply Theorem~\ref{thm:scalar_universal}; its overhead is \(O(q_Ne_N+N)=O(N^2)\), proving polynomial total size and the claimed rate.
+\end{proof}
+
+\section{Average activity from one-sided scalar input access}\label{sec:one_sided_entropy}
+
+The support-size lower bounds proved earlier do not by themselves control activity under a prescribed input distribution. A restriction on the direct input vectors permits a stronger entropy statement.
+
+\begin{lemma}[Ordered inner-product runs]\label{lem:ip_ordered_runs}
+Let \(v_1,\ldots,v_{2^m}\) be any ordering of \(\bits^m\), and let \(U\) be uniform on \(\bits^m\). For a fixed position \(j\), let \(R(U,j)\) be the length of the maximal monochromatic run containing \(j\) in
+\[
+ \ip_m(U,v_1),\ldots,\ip_m(U,v_{2^m}).
+\]
+Then
+\[
+ \mathbb E_U\log_2 R(U,j)<2.
+\]
+\end{lemma}
+
+\begin{proof}
+Let \(A\) and \(B\) be the lengths of the monochromatic extensions to the left and right of \(j\), both including \(j\). Then
+\[
+ R=A+B-1\le AB.
+\]
+For \(k\ge0\), the event \(A>2^k\) requires a particular interval of \(2^k+1\) distinct columns to be monochromatic. If this interval does not fit in the ordering, the event is empty. Otherwise choose an anchor column \(v_0\) in the interval. Its differences \(v-v_0\) span a vector space over \(\mathbb F_2\) of dimension at least \(k+1\): an affine space of dimension \(k\) has at most \(2^k\) points. Constancy is equivalent to \(U\) being orthogonal to this span. Thus
+\[
+ \Pr[A>2^k]\le2^{-k-1}.
+\]
+Since \(1\le A\le2^m\),
+\[
+ \mathbb E\log_2 A
+ \le\mathbb E\lceil\log_2 A\rceil
+ =\sum_{k=0}^{m-1}\Pr[A>2^k]
+ \le1-2^{-m}<1.
+\]
+The same estimate holds for \(B\). Take logarithms of \(R\le AB\) and add the two bounds.
+\end{proof}
+
+\begin{theorem}[One-sided scalar access reveals almost all input entropy]\label{thm:ip_one_sided_entropy}
+Let a threshold circuit compute \(\ip_m(U,V)\), with \(U,V\) independent and uniform on \(\bits^m\), where \(m\ge1\). Suppose the direct \(V\)-input vectors of all gates lie in one one-dimensional real subspace. Let \(q_V\) be the number of gates with nonzero direct \(V\)-input vector, and let \(Z\in\bits^{q_V}\) be their output transcript. Then
+\[
+ H(V\mid U,Z)<2,
+ \qquad H(Z\mid U)>m-2.
+\]
+In particular, writing \(\mu_V=\mathbb E|Z|\),
+\[
+ q_V h_2(\mu_V/q_V)>m-2.
+\]
+The same inequality holds with \(\mu_V\) replaced by
+\(\mathbb E|Z\mathbin\oplus c(U)|\), for any map
+\(c:\bits^m\to\bits^{q_V}\).
+There is no restriction on depth, coefficient magnitudes, direct \(U\)-input vectors, or the number of gates without direct \(V\) access.
+\end{theorem}
+
+\begin{proof}
+Choose a nonzero common direction \(w\) for the direct \(V\)-input vectors, and put \(\beta(v)=w\cdot v\). This scalar map is injective on \(\bits^m\). Indeed, if \(\beta(v)=\beta(v')\), every direct \(V\) contribution agrees; topological induction would imply identical outputs for every \(u\). Distinct columns of the inner-product matrix are different, a contradiction.
+
+Order the columns by \(\beta\). Fix \(u\) and an attainable transcript \(z\). Gates without direct \(V\) access are determined from \(u\) and the transcript prefix. The remaining gate conditions, after these values are fixed, are half-line conditions on \(\beta(v)\). Thus the \(z\)-fiber is an interval in the ordered column set and is monochromatic for \(\ip_m(u,\cdot)\).
+
+Conditional on \(U=u,Z=z\), the variable \(V\) is uniform on this fiber. Its conditional entropy is the logarithm of the fiber size, which is at most the logarithm of the containing monochromatic run. Averaging Lemma~\ref{lem:ip_ordered_runs} over the uniform column position gives \(H(V\mid U,Z)<2\). Since \(Z\) is determined by \((U,V)\),
+\[
+ H(Z\mid U)=H(V\mid U)-H(V\mid U,Z)>m-2.
+\]
+For \(D=Z\mathbin\oplus c(U)\), one has \(H(D\mid U)=H(Z\mid U)\). Entropy subadditivity and concavity yield
+\[
+ H(D\mid U)\le H(D)
+ \le\sum_{i=1}^{q_V}h_2(\Pr[D_i=1])
+ \le q_V h_2\!\left(\frac{\mathbb E|D|}{q_V}\right).
+\]
+Taking \(c=0\) proves the activity statement.
+\end{proof}
+
+\begin{corollary}[Average activity at the minimum number of scalar queries]\label{cor:ip_one_sided_bias}
+Under the hypotheses of Theorem~\ref{thm:ip_one_sided_entropy}, if \(q_V=m\), then
+\[
+ \left|\mu_V-\frac m2\right|<\sqrt{m\ln2}.
+\]
+The same estimate holds for expected deviations from any \(U\)-dependent center. More generally, polynomial \(q_V\) requires \(\mu_V=\Omega(m/\log m)\).
+\end{corollary}
+
+\begin{proof}
+For \(q_V=m\), apply the elementary inequality
+\[
+ 1-h_2(p)\ge\frac{2}{\ln2}(p-1/2)^2
+\]
+to Theorem~\ref{thm:ip_one_sided_entropy}. For polynomial \(q_V\), use
+\(q_Vh_2(\mu_V/q_V)\le\mu_V\log_2(\Eul q_V/\mu_V)\), and note that the asserted lower bound is immediate if \(\mu_V\) is already a positive fraction of \(m\).
+\end{proof}
+
+\begin{proposition}[Exact one-sided worst-case bound]\label{prop:ip_one_sided_patterns}
+In the setting of Theorem~\ref{thm:ip_one_sided_entropy}, let \(e_V=\max_{u,v}|Z(u,v)|\). Then
+\[
+ B(q_V,e_V)\ge2^{m-1}+1,
+ \qquad q_V\ge m.
+\]
+\end{proposition}
+
+\begin{proof}
+For each adjacent pair of distinct ordered columns, exactly half of the rows give different inner-product values. Hence the average number of monochromatic runs in a row is
+\[
+ 1+\frac{2^m-1}{2}=\frac{2^m+1}{2}.
+\]
+Some row has at least \(2^{m-1}+1\) runs. Its transcript intervals refine these runs, and at most \(B(q_V,e_V)\) transcripts are available. Finally \(B(q_V,e_V)\le2^{q_V}\).
+\end{proof}
+
+\subsection{Average activity with bounded error and randomness}
+\label{sec:sp-robust}
+
+The one-sided rank-one hypothesis also permits an average-activity lower
+bound for approximate and randomized computation. The random seed may choose
+the circuit's input direction; a common direction across all seeds is not
+required.
+
+Let \(U,V\) be independent and uniform on \(\bits^m\), and let \(R\) be an
+independent random seed. For every fixed seed \(r\), suppose \(C_r\) is a
+threshold circuit whose direct \(V\)-input weight vectors span a space of
+dimension at most one. Direct access to \(U\), internal gate count, depth, and
+real weights are unrestricted. Let \(q_V\ge1\) be a uniform upper bound on the
+number of gates reading \(V\). List their outputs in topological order and
+pad with zeros to obtain \(Z\in\bits^{q_V}\). The circuit and its direction
+may depend on \(r\).
+
+\begin{theorem}[Robust average activity under one-sided input rank one]
+\label{thm:sp-robust}
+Suppose
+\[
+ \Pr_{U,V,R}[C_R(U,V)\ne\ip_m(U,V)]\le\epsilon<\tfrac12,
+ \qquad \gamma=1-2\epsilon.
+\]
+Then
+\[
+ \boxed{\quad
+ H(Z\mid U,R)
+ \ge \gamma m-4\log_2m-14.
+ \quad}                                                   \tag{E1}
+\]
+For every baseline \(c(U,R)\in\bits^{q_V}\), put
+\(\mu_c=\mathbb E[d_H(Z,c(U,R))]\). It follows that
+\[
+ \begin{split}
+ \mu_c\log_2(\Eul q_V/\mu_c)
+ &\ge q_Vh_2(\mu_c/q_V)\\
+ &\ge \gamma m-4\log_2m-14.
+ \end{split}                                              \tag{E2}
+\]
+The expression at \(\mu_c=0\) is interpreted by continuity.
+\end{theorem}
+
+For every fixed \(\epsilon<1/2\), polynomial \(q_V\) therefore forces
+\(\Omega(m/\log m)\) average activity among the gates reading \(V\), and
+\(q_V=O(m)\) forces linear average activity. The hypothesis is uniform
+distributional error; in particular, it is implied by the usual worst-case
+error guarantee for randomized circuits. The preceding exact theorem gives
+the sharper entropy bound \(m-2\) when the error is zero.
+
+The proof uses a maximal-interval estimate for randomly selected rows of the
+inner-product matrix. We give the estimate with explicit constants.
+
+\begin{lemma}[Biased intervals in an arbitrary column order]
+\label{lem:sp-biased-interval}
+Order the distinct vectors of \(\bits^m\) arbitrarily as
+\(v_1,\ldots,v_M\), where \(M=2^m\). For uniform \(u\in\bits^m\), write
+\(X_i(u)=(-1)^{u\cdot v_i}\). Fix a position \(j\) and \(0<\eta\le1\).
+Let \(L_\eta(u,j)\) be the largest size of an interval \(I\) containing
+\(j\) such that
+\[
+ \left|\sum_{i\in I}X_i(u)\right|\ge\eta|I|.
+\]
+Then, for every real \(t\ge1\),
+\[
+ \Pr_u[L_\eta(u,j)\ge t]
+ \le\min\left\{1,\frac{1152}{\eta^4t}\right\},
+ \qquad
+ \mathbb E_u\log_2L_\eta(u,j)
+ <12+4\log_2(1/\eta).                                    \tag{E3}
+\]
+\end{lemma}
+\begin{proof}
+For every fixed set of positions \(J\), character orthogonality gives
+\[
+ \mathbb E_u\left(\sum_{i\in J}X_i(u)\right)^2=|J|.
+\]
+Consequently
+\[
+ \Pr_u\left[
+   \left|\sum_{i\in J}X_i(u)\right|\ge\delta|J|
+ \right]\le\frac1{\delta^2|J|}.                           \tag{E4}
+\]
+Only orthogonality is used; the character values need not be independent.
+
+Use the standard dyadic intervals in \(\{1,\ldots,M\}\). Every ordinary
+interval \(I\) is a disjoint union of maximal dyadic blocks, with at most
+two blocks of each size. Suppose \(|I|=\ell\) and its absolute average is
+at least \(\eta\). Discard blocks of size less than \(\eta\ell/8\).
+Their total size is less than \(\eta\ell/2\): at most two blocks occur
+at each dyadic size, and twice the sum of the dyadic sizes below a cutoff
+\(h\) is less than \(4h\). Their total contribution to the character sum has absolute
+value at most their size. Some retained block \(J\) must therefore satisfy
+\[
+ |J|\ge\eta\ell/8,
+ \qquad
+ \left|\sum_{i\in J}X_i(u)\right|
+       \ge(\eta/2)|J|.                                  \tag{E5}
+\]
+Indeed, otherwise the retained blocks' combined absolute contribution
+would be at most \(\eta\ell/2\).
+
+If \(I\) contains \(j\) and \(|J|=h\), every position of \(J\) is at
+distance at most \(\ell\le8h/\eta\) from \(j\). At each dyadic size
+\(h\), at most \(16/\eta+2\le18/\eta\) blocks satisfy this location
+condition. Each candidate satisfies the second condition in (E5) with
+probability at most \(4/(\eta^2h)\), by (E4). If \(\ell\ge t\), then
+\(h\ge\eta t/8\). A union bound over blocks and dyadic sizes gives
+\[
+ \Pr_u[L_\eta(u,j)\ge t]
+ \le \frac{18}{\eta}\frac4{\eta^2}
+       \sum_{\substack{h\text{ dyadic}\\h\ge\eta t/8}}\frac1h
+ \le \frac{18}{\eta}\frac4{\eta^2}\frac{16}{\eta t}
+ =\frac{1152}{\eta^4t}.
+\]
+When \(\eta t/8<1\), the sum starts at \(h=1\) and the same bound
+holds. Integrating the tail of \(\log_2L_\eta\) yields
+\[
+ \mathbb E_u\log_2L_\eta(u,j)
+ \le\log_2(1152/\eta^4)+\log_2\Eul
+ <12+4\log_2(1/\eta).
+\]
+\end{proof}
+
+\begin{proof}[Proof of Theorem~\ref{thm:sp-robust}]
+Fix a seed \(r\). When the \(V\)-input span is one dimensional, choose a
+spanning vector \(w_r\) and order the Boolean columns by
+\(\beta_r(v)=w_r\cdot v\), breaking ties arbitrarily. For zero-dimensional
+span use any order. Fix also \(U=u\). A transcript \(z\) determines the
+outputs of every gate not reading \(V\) by topological evaluation. The
+remaining gate constraints are half-line conditions on \(\beta_r(v)\).
+Thus every nonempty transcript fiber is a consecutive interval in this
+column order. Equal scores have identical transcripts, so tied scores cause
+no exception and no injectivity assumption is needed.
+
+Let \(I(u,z,r)\) denote the fiber and \(\ell(u,z,r)\) its size. Conditional
+on \(u,z,r\), the original uniform input \(V\) is uniform on the fiber.
+Consequently
+\[
+ H(Z\mid U,R)
+ =m-\mathbb E\log_2\ell(U,Z,R).                          \tag{E6}
+\]
+The predicted output is constant on each fiber, although its label may
+depend on \(u,z,r\).
+
+Fix any \(0<\eta<\gamma\). Let \(A\) be the event that the sampled fiber
+satisfies
+\[
+ \left|\frac1{|I|}\sum_{v\in I}(-1)^{U\cdot v}\right|
+ \ge\eta,
+\]
+and put \(b=\Pr[A]\), including the randomness in \(U,V,R\).
+Prediction and target have signed correlation at least \(\gamma\).
+On \(A\), their conditional correlation is at most one; off \(A\), it
+is at most \(\eta\). Hence
+\[
+ \gamma\le b+\eta(1-b),
+ \qquad b\ge\frac{\gamma-\eta}{1-\eta}.                  \tag{E7}
+\]
+On \(A\), the fiber is an \(\eta\)-biased interval containing the
+sampled column position \(j\), so \(\ell\le L_\eta(U,j)\). Off \(A\),
+use \(\ell\le2^m\). Lemma~\ref{lem:sp-biased-interval} is uniform in
+the order and the position. Conditional on the seed, that order is fixed
+independently of \(U\), so the lemma also holds after averaging over
+\(V,R\). Therefore
+\[
+ \begin{split}
+ \mathbb E\log_2\ell
+ &\le(1-b)m+\mathbb E[\mathbf1_A\log_2L_\eta]\\
+ &\le(1-b)m+12+4\log_2(1/\eta).
+ \end{split}
+\]
+Combining (E6) and (E7) gives, for every \(0<\eta<\gamma\),
+\[
+ H(Z\mid U,R)
+ \ge\frac{\gamma-\eta}{1-\eta}\,m
+       -12-4\log_2(1/\eta).                             \tag{E8}
+\]
+If \(m\ge2\) and \(\gamma>1/m\), take \(\eta=1/m\). Then
+\[
+ \frac{\gamma-1/m}{1-1/m}\,m
+ =\gamma m-\frac{(1-\gamma)m}{m-1}
+ \ge\gamma m-2,
+\]
+which proves (E1). In the remaining cases the right-hand side of (E1)
+is negative, so the claim follows from nonnegative entropy. Maximizing
+over every interval containing \(j\) in the technical lemma is essential:
+the circuit's selected fiber can depend arbitrarily on \(U\).
+
+Finally let \(Y=Z\oplus c(U,R)\). Given \(U,R\), this is a bijective
+change of transcript, so \(H(Y\mid U,R)=H(Z\mid U,R)\). If
+\(p_i=\Pr[Y_i=1]\), entropy subadditivity and concavity give
+\[
+ H(Z\mid U,R)\le H(Y)
+ \le\sum_{i=1}^{q_V}h_2(p_i)
+ \le q_Vh_2(\mu_c/q_V)
+ \le\mu_c\log_2(\Eul q_V/\mu_c).
+\]
+The last inequality follows from \(-(1-p)\ln(1-p)\le p\), and holds
+throughout \(0\le\mu_c\le q_V\). This proves (E2).
+\end{proof}
+
+The coefficient \(\gamma=1-2\epsilon\) of \(m\) in (E1) is optimal for
+the randomized model. With probability \(\gamma\), decode Bob's input
+exactly from \(\beta(V)=\sum_{i=0}^{m-1}2^iV_i\) by successive comparisons
+\[
+ z_i=\ind{\beta(V)-\sum_{j>i}2^jz_j\ge2^i},
+ \qquad i=m-1,m-2,\ldots,0,
+\]
+and compute inner product from these bits and Alice's input. Every decoding
+gate reads the same Bob direction, and subsequent gates need no direct
+Bob input. On the remaining seeds, ignore Bob and output a fair random bit.
+After padding the latter transcripts with zeros, this construction has
+\(H(Z\mid U,R)=\gamma m\) and error exactly
+\((1-\gamma)/2=\epsilon\).
+
+This result concerns one-sided input rank at most one. It gives no
+unrestricted average-activity lower bound when the circuit may use many
+independent directions from both input sides. Its baseline formulation shows
+that the conclusion also measures deviations from any activation template
+chosen using the entire Alice input and the random seed.
+
+
+\section{Pending biases as an exact branching-program state}\label{sec:bias}
+The transcript tree preserves all past gate values. A branching program can merge histories whose effects on the future agree.
+
+Let \(B=(b_{ij})\) be the strictly lower triangular internal weight matrix. At the cut after gate \(k\), define
+\[
+ C_k=B_{\{k+1,\ldots,s\},\{1,\ldots,k\}},
+ \qquad p_k=C_k z_{\le k}.
+\]
+The vector \(p_k\) contains every contribution from already evaluated gates to unevaluated gates.
+
+\begin{theorem}[Pending-bias program]\label{thm:bias}
+The circuit has a layered linear-query branching program with state \(p_k\) at layer \(k\). Its next query and update are
+\[
+ z_{k+1}=\ind{a_{k+1}\cdot x\ge\theta_{k+1}-(p_k)_1},
+ \qquad
+ p_{k+1}=\operatorname{tail}(p_k)+B_{>k+1,k+1}z_{k+1}.    \tag{8}
+\]
+Writing \(\mathcal S_k=\{C_ku:u\in\bits^k\}\), its number of query nodes is at most
+\(\sum_{k=0}^{s-1}|\mathcal S_k|\), with two additional output terminals.
+\end{theorem}
+\begin{proof}
+Equation (3) gives the query. Removing its first coordinate and adding the new gate's contributions gives the update. Induction proves exact simulation. Counting all hypothetical Boolean prefixes is an upper bound; only a subset need be attainable.
+\end{proof}
+
+All queries in layer \(i\) have the same input normal \(a_i\). The threshold varies with state. This constraint is stronger than the definition of a general linear-query branching program.
+
+\subsection{Rank, precision, and repeated coefficients}
+Put \(r_k=\rank_\R C_k\). Select \(r_k\) independent rows. Their values determine the complete vector \(C_ku\).
+
+If all internal weights are integers with \(|b_{ij}|\le W\), every selected row sum has at most \(kW+1\) values: its integer range has length at most the sum of the absolute row coefficients. Hence
+\[
+ |\mathcal S_k|
+ \le\min\{2^k,(kW+1)^{r_k}\}.                            \tag{9}
+\]
+More precisely, the second expression can be replaced by
+\[
+ \prod_{\ell\text{ selected}}\left(1+\sum_{j\le k}|b_{\ell j}|\right).
+\]
+Since \(r_k\le s-k\), with \(D=\log_2(sW+1)\) we obtain
+\[
+ |\mathcal S_k|\le2^{\min\{k,D(s-k)\}}
+ \le2^{s-s/(D+1)}.
+\]
+Thus the program has at most
+\[
+ 2+s\,2^{s-s/(D+1)}                                      \tag{10}
+\]
+nodes. For \(s=N\) and \(W=N^{O(1)}\), this is \(2^{N-\Omega(N/\log N)}\).
+The direct input weights remain arbitrary real numbers.
+
+If \(C_k\) has only \(t\) distinct column vectors, occurring with multiplicities \(m_1,\ldots,m_t\), then
+\[
+ |\mathcal S_k|\le\prod_{\ell=1}^t(m_\ell+1),              \tag{11}
+\]
+without any precision assumption. The state needs only the number of ones selected from each column type.
+
+\paragraph{A dense example.}
+If \(b_{ij}=\beta_i\) for every \(j<i\), the graph can be complete while the state is just \(h_k=\sum_{j\le k}z_j\). Its width is at most \(k+1\), so the program has \(O(s^2)\) nodes. Graph density alone misses this compression.
+
+\paragraph{Why real rank is not finite-state width.}
+The rank-one map \(u\mapsto\sum_{j=1}^k2^{j-1}u_j\) has \(2^k\) distinct values. One real register may encode an entire Boolean transcript. Rank bounds the number of real coordinates, but a finite-state bound needs additional information such as precision or repeated coefficients. Furthermore, a large state set for this particular compiler is not a lower bound on every possible program computing the function.
+
+\subsection{Ordinary branching programs and recomputation}\label{sec:ordinaryBP}
+An LTF on \(v\) Boolean variables has an integer representation with \(O(v\log v)\)-bit coefficients \cite{Hastad25}. There is an ordinary, read-many branching program of width \(O(v)\) and polynomial length evaluating such an LTF.
+
+Here is a bit-serial implementation. Complement negatively weighted variables and absorb the resulting constant. Thresholds outside the attainable sum range give constant functions and can be handled immediately. Scan the bits of the nonnegative weights from least to most significant. In each column, initialize one accumulator to the incoming carry, rescan all \(v\) input bits, and add their current weighted bit. This single accumulator remains \(O(v)\). Emit the resulting sum bit, halve the accumulator to obtain the next carry, and update a three-valued comparison with the corresponding threshold bit; a more significant unequal bit overrides the previous comparison. Flush the final carry using \(O(\log v)\) additional columns. With \(O(v\log v)\) columns altogether this uses polynomially many nodes. It repeatedly queries original inputs.
+
+Replacing every node of Theorem~\ref{thm:bias} with such a gadget multiplies its size by \(\poly(N)\). This conversion is nonuniform for arbitrary real input descriptions.
+
+A depth-\(d\) threshold circuit can also be evaluated recursively in space
+\(O(d\log(N+s))\): whenever a bit-serial gate computation requests a predecessor value, recompute that predecessor recursively. Integerize each gate over its existing nonzero fan-in, so no dependency edge is introduced. Coefficient bits are nonuniform transition-table data. Its ordinary branching-program size is therefore
+\[
+ (N+s)^{O(d)}.
+\]
+If deletion of \(t\) gates leaves depth at most \(d\), enumerate their \(2^t\) possible output assignments, verify the guessed gate equations by the same recursion, and evaluate the output for the unique consistent guess. This gives
+\(2^t(N+s)^{O(d+1)}\) nodes.
+
+These are read-many programs. Their sizes do not yield read-once lower bounds or a method of counting satisfying assignments by counting graph paths.
+
+\subsection{Totally unimodular pending biases}
+\label{sec:tu-pending}
+
+\begin{corollary}[A Fibonacci-size program]\label{cor:fibonacci-bp}
+Assume the output is \(z_s\). If every pending-bias cut matrix \(C_k\) is
+totally unimodular, the circuit has a linear-query branching program with
+at most
+\[
+ F_{s+3}=O(\varphi^s),\qquad
+ \varphi=\frac{1+\sqrt5}{2},
+\]
+nodes, including two output terminals. Here \(F_0=0,F_1=1\) are the
+Fibonacci numbers. It suffices that the entire internal-weight matrix
+\(B\) be totally unimodular. Direct input weights and depth are unrestricted.
+\end{corollary}
+
+\begin{proof}
+Select independent original rows of \(C_k\), preserving total
+unimodularity and the cardinality of its Boolean image. Its rank is at
+most \(s-k\), so Proposition~\ref{prop:tu-summary} gives
+\[
+ |\mathcal S_k|\le\sum_{j=0}^{s-k}\binom kj,
+\]
+with \(\binom kj=0\) for \(j>k\). Theorem~\ref{thm:bias} now bounds the
+node count by
+\[
+ 2+\sum_{k=0}^{s-1}\sum_{j=0}^{s-k}\binom kj=F_{s+3}.    \tag{P1}
+\]
+For the identity, set \(n=k+j\) and use
+\(\sum_j\binom{n-j}{j}=F_{n+1}\). Summing over \(0\le n\le s\) and
+removing the absent term \(k=s,j=0\) gives
+\(\sum_{k=0}^{s-1}\sum_{j=0}^{s-k}\binom kj=F_{s+3}-2\).
+\end{proof}
+
+For rational circuit descriptions, the linear-query program can be
+constructed with polynomial overhead per state. The read-many bit-serial
+conversion introduces an additional polynomial factor in the description
+length. This program-size improvement does not imply exact counting from
+pending biases alone.
+
+\begin{proposition}[A width-two encoding of arbitrary 3-CNF]
+\label{prop:width-two-cnf}
+Every 3-CNF formula can be represented, on the same input variables, by a
+threshold circuit whose internal dependency graph is a path, whose nonzero
+internal weights all equal one, and whose pending-bias program has width
+at most two. The representation preserves the number of satisfying inputs.
+\end{proposition}
+
+\begin{proof}
+Let \(\ell_i(x)\in\{0,1,2,3\}\) count the satisfied literals of clause
+\(i\). Define
+\[
+ z_1=\ind{\ell_1(x)/3\ge1/3},\qquad
+ z_i=\ind{\ell_i(x)/3+z_{i-1}\ge4/3}\quad(i\ge2).
+\]
+If \(z_{i-1}=0\), the next score is at most one and the gate is zero.
+If \(z_{i-1}=1\), its condition is precisely \(\ell_i(x)\ge1\).
+Thus \(z_i\) is the conjunction of the first \(i\) clauses. At cut \(k\),
+the sole nonzero pending contribution is \(z_k\) to the next gate, so
+there are at most two states. The internal matrix is a subdiagonal
+partial permutation matrix and hence is totally unimodular.
+\end{proof}
+
+Thus SAT and exact counting for arbitrary 3-CNF already occur with
+rank-one pending biases and totally unimodular internal weights. The
+input-summary hypothesis in Theorem~\ref{thm:zonotope-counting} supplies
+information absent from a bound on pending-state width.
+
+
+
+\section{Input directions, offset menus, and a capacity lower bound}\label{sec:capacity}
+We now make a second representation useful for lower bounds. The rectangle hypothesis here is stronger than the fixed-partition hypothesis used for inner product.
+
+\begin{definition}[All-splits rectangle property]
+For a positive integer \(\kappa\), a Boolean function \(f:\bits^N\to\bits\) is \emph{two-sided \(\kappa\)-rectangle-free} if, for every coordinate subset \(U\), every monochromatic rectangle
+\(P\times Q\subseteq\bits^U\times\bits^{U^c}\) has \(|P|<\kappa\) or \(|Q|<\kappa\).
+\end{definition}
+Both colors and every coordinate split are required, including unbalanced splits.
+
+\subsection{The prior capacity theorem, with proof}
+A computation by \emph{scalar blocks} consists of histories \(H_0(x),\ldots,H_b(x)\), with \(H_0\) constant and
+\[
+ H_i(x)=\Phi_i(H_{i-1}(x),w_i\cdot x).
+\]
+For every fixed history \(\eta\), assume \(t\mapsto\Phi_i(\eta,t)\) changes at most \(T_i\) times on the real line, where \(T_i\) is a nonnegative integer. The output is any fixed function of \(H_b\). Histories may be vector-valued and arbitrarily large. A zero-change block has cost one; otherwise its cost is \(4T_i\).
+
+We may also use a \emph{summary block} of positive integer cost \(V\): for every split, the next history depends on the first-side input \(p\) only through the old history and a map \(\sigma(p)\) with at most \(V\) values, while arbitrary dependence on the second-side input is permitted.
+
+\begin{theorem}[Capacity theorem; Schlesinger]\label{thm:capacity}
+For a two-sided \(\kappa\)-rectangle-free function and any such block computation,
+\[
+ 2^N<4\kappa^2\mathcal C,
+ \qquad
+ \mathcal C=\prod_i\text{(block cost)}.                   \tag{12}
+\]
+\end{theorem}
+\begin{proof}
+We include the rectangle argument from the existing development \cite{Schlesinger26}.
+For a fixed split maintain a rectangle \(P\times Q\) on which the current history depends only on \(q\in Q\).
+
+At a scalar block with \(T\ge1\), write the new history as
+\(\Psi_q(\alpha(p))\), where \(\alpha(p)\) is the first-side weighted sum and the second-side contribution is absorbed into \(\Psi_q\). Sort \(P\) by \(\alpha\), and take \(2T\) disjoint consecutive groups, each of size \(\lfloor |P|/(2T)\rfloor\). For each fixed \(q\), at most \(T\) groups can be nonconstant: each such group contains an adjacent change in an ordered sequence. Averaging over groups gives one group that is constant for at least half of \(Q\). Thus the first-side loss is \(2T\), and the second-side loss is two. Zero-change blocks lose nothing. At a summary block, retain a largest fiber of \(\sigma\), losing a factor \(V\) only on the first side.
+
+Let \(D_P,D_Q\) be the products of these two kinds of loss, so \(\mathcal C=D_PD_Q\).
+Repeated floors combine exactly, leaving sides at least
+\(\lfloor2^{|U|}/D_P\rfloor\) and \(\lfloor2^{N-|U|}/D_Q\rfloor\).
+Choose \(a=|U|=\lceil\log_2(\kappa D_P)\rceil\).
+If \(2^N\ge4\kappa^2D_PD_Q\), then
+\[
+ \kappa D_P\le2^a<2\kappa D_P,\qquad
+ 2^{N-a}>2\kappa D_Q.
+\]
+This also ensures \(a\le N\). The final first side has at least \(\kappa\) elements and the second at least \(2\kappa\). The output depends only on the second side; retaining its majority color leaves a monochromatic rectangle with both sides at least \(\kappa\), a contradiction.
+\end{proof}
+
+\paragraph{Existing consequences and explicit family.}
+Processing individual input-reading gates gives \(\mathcal C\le4^q\), hence \(q>(N-2\log_2\kappa-2)/2\).
+A consecutive run with \(q_i\ge1\) input-reading gates, all reading a single direction, has at most \(2^{q_i}\) scalar pieces, so its cost is at most \(4(2^{q_i}-1)\). Runs with no input-reading gates cost one. With \(b\) runs this gives \(q+2b>N-2\log_2\kappa-2\). These are prior consequences, not results newly claimed here.
+
+Schlesinger's source-reduction family is uniformly polynomial-time computable and eventually has this property with \(\kappa(N)=2^{o(N)}\) \cite{SchlesingerFamily26}. The source formalizes the implication from a two-sided flat sumset disperser: pad the two coordinate sides by zeros; their XOR is the original glued input. Thus two independent flat sources on any large rectangle cannot produce a constant output. The extractor construction is an external ingredient in the explicit-family corollaries below; it is not needed for the inner-product results.
+
+The leaf-count theorem also gives, directly for this family,
+\[
+ P(C)>\frac{2^{\lfloor N/2\rfloor}}{\kappa(N)}.
+\]
+Consequently a circuit with at most \(N\) input-reading gates has
+\[
+ e(C)\ge\bigl(h_2^{-1}(1/2)-o(1)\bigr)N
+       =\bigl(0.1100278644\ldots-o(1)\bigr)N.             \tag{13}
+\]
+
+\subsection{Static expansion of all possible threshold offsets}
+Partition the nonzero input vectors into their distinct one-dimensional subspaces:
+\[
+ a_i=\lambda_i w_{\delta(i)},\qquad \lambda_i\ne0.
+\]
+There are \(d\) directions. Opposite scalar multiples belong to the same direction.
+For each input-reading gate define its \emph{bias menu}
+\[
+ \mathcal B_i=\left\{\sum_{j<i}b_{ij}u_j:u\in\bits^{i-1}\right\},
+ \qquad D_i=|\mathcal B_i|.
+\]
+These are syntactic menus containing every attainable offset; infeasible Boolean predecessor patterns may be included. Let
+\[
+ q_a=|\{i\in I:\delta(i)=a\}|,\qquad
+ T_a=\sum_{\substack{i\in I\\\delta(i)=a}}D_i.             \tag{14}
+\]
+
+\begin{theorem}[Direction--menu lower bound]\label{thm:menus}
+Every threshold circuit for a two-sided \(\kappa\)-rectangle-free function satisfies
+\[
+ \boxed{\quad
+ 2^N<4\kappa^2\prod_{a=1}^d\min\{4^{q_a},\,4T_a\}.
+ \quad}                                                  \tag{15}
+\]
+Directions may occur in arbitrary order throughout the circuit. All coefficients may be arbitrary reals.
+\end{theorem}
+\begin{proof}
+For direction \(a\), precompute the vector of all comparisons
+\[
+ \ind{\lambda_i\,w_a\cdot x+\beta\ge\theta_i},
+ \qquad \delta(i)=a,\quad\beta\in\mathcal B_i.
+\]
+As a function of the scalar \(w_a\cdot x\), every coordinate changes once. The whole vector changes at most \(T_a\) times, including when differently oriented comparisons share a threshold. Hence this precomputation is one scalar block of cost \(4T_a\).
+
+After its table is available, a gate of direction \(a\) needs only its predecessor bits: these select the appropriate table entry. It is now an input-free update of the stored history.
+
+Choose any subset \(S\) of directions and precompute their tables first. Then execute the original gate order. Directions outside \(S\) still cost four per input-reading gate; all other updates cost one. The resulting capacity is
+\[
+ \prod_{a\in S}4T_a\prod_{a\notin S}4^{q_a}.
+\]
+Apply Theorem~\ref{thm:capacity} and minimize independently over membership in \(S\). No adaptive gate is moved ahead of its predecessors; only its finite table of possible queries is precomputed.
+\end{proof}
+
+\begin{corollary}[Bounded predecessor fan-in]\label{cor:menusfanin}
+Suppose each input-reading gate reads at most \(k\) earlier gate outputs with nonzero coefficients. Then
+\[
+ N-2\log_2\kappa-2
+ <d\left(k+2+\log_2(q/d)\right),                         \tag{16}
+\]
+and therefore
+\[
+ q>d\,2^{(N-2\log_2\kappa-2)/d-k-2}.                     \tag{17}
+\]
+\end{corollary}
+\begin{proof}
+Each menu has \(D_i\le2^k\), so \(T_a\le q_a2^k\). Use the all-precomputed choice in (15), take logarithms, and apply
+\(\sum_a\log_2q_a\le d\log_2(q/d)\).
+\end{proof}
+For the explicit family with \(\log_2\kappa=o(N)\), constant \(d,k\) force \(q=2^{\Omega(N)}\). Constant \(k\) and \(q=O(N)\) force \(d=\Omega(N)\), because \(d\log(q/d)=o(N)\) if \(d=o(N)\). Input-free gates are unrestricted.
+
+\paragraph{Bounded integer internal weights.}
+If \(|b_{ij}|\le W\) and \(b_{ij}\in\Z\), then
+\[
+ D_i\le1+\sum_{j<i}|b_{ij}|\le1+(s-1)W.
+\]
+Thus
+\[
+ N-2\log_2\kappa-2
+ <d\log_2\!\left(\frac{4q[1+(s-1)W]}d\right).            \tag{18}
+\]
+For one direction this yields \(q[1+(s-1)W]>2^{N-2\log_2\kappa-4}\).
+In that case, if \(W=N^{O(1)}\) and \(\kappa=2^{o(N)}\), the total gate count obeys
+\(s\ge2^{(1/2-o(1))N}\).
+If instead \(W\le s^c\), the exponent becomes \(1/(c+2)\).
+
+\paragraph{Few coefficient values with unbounded magnitude.}
+Suppose an input-reading gate has at most \(h\) distinct nonzero internal coefficient values, with multiplicities \(m_1,\ldots,m_{h_i}\). Then
+\[
+ D_i\le\prod_{\ell=1}^{h_i}(m_\ell+1)\le(s+1)^h.
+\]
+No bound on the real values is used. In one direction,
+\(q(s+1)^h>2^{N-2\log_2\kappa-4}\).
+For fixed \(h\) on the explicit family, this gives
+\(s\ge2^{N/(h+1)-o(N)}\).
+Only coefficients entering input-reading gates are constrained.
+
+\subsection{A local refinement for consecutive runs}
+For a consecutive scalar-direction run \(R\), fix the transcript before the run. Only subset sums of coefficients from earlier gates \emph{inside} \(R\) contribute variable offsets. Let \(D_i^{R}\) be those menu cardinalities, counting input-free predecessors as well.
+
+The run has at most
+\[
+ T_R\le
+ \min\left\{2^{q_R}-1,\ \sum_{i\in I\cap R}D_i^R\right\}  \tag{19}
+\]
+changes. For the second bound, construct the static comparison catalogue for the run, using its fixed incoming history and the within-run menus. Each Boolean coordinate is a monotone scalar threshold and changes at most once. The vector therefore changes at most \(\sum_iD_i^R\) times, even if opposite orientations share a threshold: their changes are charged to different coordinates. The whole run transcript is fixed Boolean postprocessing of this catalogue and the incoming history, so it cannot introduce additional changes.
+
+The first bound follows by sequential evaluation: each input-reading gate splits every current scalar interval into at most two intervals, while input-free gates add no split. Formula (19), used in the prior run decomposition, improves the \(2^{q_R}-1\) estimate when internal subset sums collide. It holds for the original thresholds and coefficients without perturbation.
+
+\section{Input rank and the number of available comparisons}\label{sec:rankcut}
+The preceding direction bound counts distinct one-dimensional subspaces. We now obtain a stronger type of restriction: the input vectors may point in arbitrarily many directions, provided that their span has small dimension. A standard hyperplane-cutting theorem supplies the geometric ingredient.
+
+\begin{definition}[Comparison catalogue]
+A catalogue consists of \(H\ge1\) affine threshold functions \(h_1,\ldots,h_H\) on \(\bits^N\), together with arbitrary fixed Boolean postprocessing of their answer vector. Its input rank is the real rank of their normal vectors. A catalogue for a circuit is required to determine its entire gate transcript.
+\end{definition}
+
+Every circuit has a catalogue of at most \(H=\sum_{i\in I}D_i\) comparisons: list the threshold test of each input-reading gate at each possible preceding-gate bias. In fact, the menus can be restricted to \emph{actually attained} biases. If
+\[
+ \widehat{\mathcal B}_i
+ =\left\{\sum_{j<i}b_{ij}z_j(x):x\in\bits^N\right\},
+ \qquad \widehat D_i=|\widehat{\mathcal B}_i|,
+\]
+then \(H=\sum_i\widehat D_i\) suffices. At evaluation time, induction on gates ensures that the bias selected by the true preceding transcript belongs to the listed menu. An arbitrary convention can be used for a missing lookup on a hypothetical, unattainable transcript. The same observation strengthens Theorem~\ref{thm:menus} by replacing \(D_i\) with \(\widehat D_i\). If \(p_i\) input-reading gates precede gate \(i\), its reached menu has at most \(B(p_i,e)\) entries under input-reading activity at most \(e\), because their transcript determines every preceding gate. Identical oriented comparisons may be shared. Oppositely oriented comparisons at the same breakpoint remain separate: equality can produce an intermediate answer pattern. Each retained comparison changes once, so the direction's total number of changes remains bounded by its catalogue size.
+
+\begin{lemma}[A cutting gives a large constant-sign rectangle]\label{lem:rankcut}
+For every fixed integer \(r\ge1\), there is an integer constant \(C_r\ge1\) with the following property. Let \(P,Q\) be finite nonempty sets, let \(u:P\to\R^r\), and suppose that for every \(q\in Q\) a list of at most \(H\ge1\) affine halfspace tests is applied to \(u(p)\). There are \(P'\subseteq P\), \(Q'\subseteq Q\) with
+\[
+ |P'|\ge\frac{|P|}{C_rH^r},\qquad |Q'|\ge\frac{|Q|}{2},
+\]
+such that, for every fixed \(q\in Q'\), the full list of test answers is independent of \(p\in P'\).
+\end{lemma}
+\begin{proof}
+The hyperplane-cutting theorem of Chazelle states that \(n\) hyperplanes in fixed dimension \(r\) admit a subdivision into at most \(K_rt^r\) simplices, with disjoint interiors, such that each simplex interior meets at most \(n/t\) hyperplanes \cite{Chazelle93}. Unbounded simplices are permitted. Discard tests with constant answers. Apply the theorem with \(t=2H\) to the at most \(H|Q|\) hyperplanes labeled by their test and by \(q\). Constants can be absorbed into an integer \(C_r\), giving at most \(C_rH^r\) cells and at most \(|Q|/2\) crossing labeled hyperplanes per cell. If the number of remaining hyperplanes is less than \(t\), use their full arrangement and a triangulation instead; it has \(O_r(t^r)\) cells and zero crossings.
+
+Here is a finite perturbation justification for degeneracies, including repeated points, repeated hyperplanes, and weak comparisons. First shift each labeled comparison threshold by a sufficiently small amount to make all its evaluations on the finite set \(u(P)\) strict while preserving their Boolean answers. Then perturb the labeled hyperplanes into general position, preserving every one of those finitely many strict signs. Construct the cutting. Finally perturb the labeled points slightly, preserving all signs and placing each point in a cell interior. These perturbations are only a geometric representation of the finite answer table; they do not modify the original circuit or its rank parameter.
+
+Some cell contains at least \(|P|/(C_rH^r)\) labeled points. At most \(|Q|/2\) labels \(q\) have any one of their hyperplanes crossing that cell, since every such label accounts for at least one crossing hyperplane. Keep all other labels. Every test then has a constant sign on the selected points for each retained \(q\), as required.
+\end{proof}
+
+\begin{theorem}[Rank--catalogue lower bounds]\label{thm:rankcatalogue}
+Suppose \(f\) is computed from a catalogue of \(H\) comparisons whose input rank is at most \(r\ge1\).
+\begin{enumerate}
+ \item On any coordinate split \(X\times Y\), there is a monochromatic rectangle with sides at least
+ \[
+ \frac{|X|}{C_rH^r}\quad\hbox{and}\quad\frac{|Y|}{4}.
+ \]
+ If every monochromatic rectangle on that split has area at most \(R_f\), then
+ \[
+ H^r\ge\frac{|X||Y|}{4C_rR_f}.
+ \]
+ In particular, for \(\ip_m\),
+ \[
+ H^r\ge\frac{2^m}{4C_r}.
+ \]
+ \item If \(f\) is two-sided \(\kappa\)-rectangle-free under every coordinate split, then
+ \[
+ \boxed{\quad 2^N<8C_r\kappa^2H^r.\quad}
+ \]
+\end{enumerate}
+The constant \(C_r\) depends on \(r\); the asymptotic consequences below keep \(r\) fixed.
+\end{theorem}
+\begin{proof}
+Choose a row basis for the direct input vectors and write their common linear summary as \(R_Xx+R_Yy\in\R^r\). For fixed \(y\), every catalogue test is an affine halfspace test of \(R_Xx\). Apply Lemma~\ref{lem:rankcut}. The catalogue answers, and hence \(f\), depend only on \(y\) on the resulting rectangle. Retain the majority output value on its second side, losing a further factor of at most two. This proves the first claim.
+
+For the second claim, put \(M=C_rH^r\). Suppose for contradiction that \(2^N\ge8\kappa^2M\), and choose a coordinate split whose first side contains
+\[
+ a=\left\lceil\log_2(\kappa M)\right\rceil
+\]
+input bits. The assumed inequality ensures \(a\le N\). Since \(2^a\ge\kappa M\) and \(2^a<2\kappa M\), the first claim gives a monochromatic rectangle with first side at least \(\kappa\) and second side at least \(2^{N-a}/4\ge\kappa\). This contradicts the all-splits property.
+\end{proof}
+
+\begin{corollary}[Bounded input rank and predecessor fan-in]\label{cor:rankfanin}
+Let a threshold circuit for the explicit all-splits family have input rank at most a fixed \(r\ge1\). Suppose each of its \(q\) input-reading gates reads at most \(k\) preceding gate outputs with nonzero coefficients. Then
+\[
+ q>2^{-k}\left(\frac{2^N}{8C_r\kappa(N)^2}\right)^{1/r}.
+\]
+If \(k=O(1)\) and \(\kappa(N)=2^{o(N)}\), then
+\[
+ \boxed{\quad q\ge2^{N/r-o(N)}.\quad}
+\]
+All weights are arbitrary reals, the depth is unrestricted, and input-free gates are unrestricted. In particular, input rank two and constant predecessor fan-in force \(2^{N/2-o(N)}\) input-reading gates, even with arbitrarily many distinct directions in that plane.
+\end{corollary}
+\begin{proof}
+Every syntactic bias menu has at most \(2^k\) members, so \(H\le q2^k\). Substitute in Theorem~\ref{thm:rankcatalogue}.
+\end{proof}
+
+Other bounds on menus transfer in the same way. For a fixed input rank \(r\), integer internal coefficients of magnitude at most \(W=N^{O(1)}\) give \(H\le q[1+(s-1)W]\) and therefore
+\[
+ s\ge2^{N/(2r)-o(N)}.
+\]
+If each input-reading gate uses at most a fixed \(h\) distinct nonzero internal coefficient values, with arbitrary real magnitudes, then \(H\le q(s+1)^h\), giving
+\[
+ s\ge2^{N/[r(h+1)]-o(N)}.
+\]
+These are structural lower bounds. With unrestricted input rank and unrestricted menus, they do not supply a superlinear lower bound on unrestricted total gate count.
+
+
+\section{Input summaries and rank--precision lower bounds}\label{sec:summary}
+The circuit output is a function of the vector \(Ax\) of all direct input-weighted sums. More generally, after a split \(x=(u,v)\), select linearly independent original direct \(u\)-input rows spanning all such rows, and let \(R\) be their matrix. The entire output row \(f(u,\cdot)\) is determined by \(Ru\).
+
+\begin{proposition}[Distinct rows force distinct summaries]\label{prop:summary}
+If \(f:\bits^m\times\bits^\ell\to\bits\) has \(M\) distinct communication-matrix rows, then
+\[
+ |\{Ru:u\in\bits^m\}|\ge M.
+\]
+For \(\ip_m\), the map \(u\mapsto Ru\) is injective. If \(R\in\Z^{r\times m}\), with entries bounded in magnitude by \(W\), then
+\[
+ r\log_2(mW+1)\ge m.                                    \tag{20}
+\]
+\end{proposition}
+\begin{proof}
+If \(Ru=Ru'\), all original \(u\)-input contributions agree, and topological induction gives identical circuit outputs for every \(v\). For inner product, distinct \(u,u'\) are distinguished by a coordinate vector \(v\) where they differ. Each integer row sum has at most \(mW+1\) values, proving (20).
+\end{proof}
+
+There is a stronger entropy form. If \(X\) is uniform on \(\bits^m\) and \(R\) is injective on the cube, then \(H(RX)=m\). Add independent uniform noise \(U\) on \([-1/2,1/2]^r\). The integer translates have disjoint interiors, so
+\(h(RX+U)=m\) in bits, while
+\(\Cov(RX+U)=RR^\mathsf T/4+I/12\).
+Comparison with the Gaussian of the same covariance gives
+\[
+ m\le\frac12\log_2\det\!\left[
+ 2\pi\Eul\left(\frac14 RR^\mathsf T+\frac1{12}I\right)
+ \right].                                               \tag{21}
+\]
+This follows, for example, by nonnegativity of relative entropy with respect to that Gaussian; its log-density expectation is determined by the covariance. Hadamard's determinant inequality yields
+\[
+ m\le\frac r2\log_2\!\left[
+ 2\pi\Eul\left(\frac{mW^2}{4}+\frac1{12}\right)\right].    \tag{22}
+\]
+For constant \(W\), this forces \(r\ge(2-o(1))m/\log_2m\).
+These are information-capacity bounds for additive summaries, closely related to detecting-matrix and coin-weighing arguments. We make no novelty claim for that entropy method. They do not become unrestricted gate lower bounds when weights are arbitrary reals.
+
+\paragraph{A true read-once interpretation.}
+If the entire input matrix has an integer row basis of rank \(r\) with entries bounded by \(W\), an ordered read-once branching program can track its \(r\) partial weighted sums while reading inputs once. It has
+\(O(N(NW+1)^r)\) nodes; at the last layer, assign outputs by evaluating the circuit on the completed summary. This is nonuniform and places no restriction on internal weights.
+
+\paragraph{A cut with phased input access.}
+If gates before cut \(k\) read only \(u\), and gates after it read only \(v\), with the output gate in the suffix, the reachable pending bias \(p_k\) is a deterministic one-way message. Distinct rows of \(f\) require distinct reachable messages. Thus for inner product or equality on \(m+m\) bits, \(|\mathcal S_k^{\rm reach}|\ge2^m\), and integer internal weights give
+\(r_k\log_2(kW+1)\ge m\).
+The phased-access hypothesis is essential.
+
+\subsection{Zonotope states and exact counting}\label{sec:zonotope-counting}
+
+The coordinate-box estimate counts every possible combination of row sums.
+A lattice-zonotope bound gives a substantially smaller state space when the
+summary rank grows with the input length. This improvement supports an exact
+counting algorithm, because the summaries are read once from the original
+input and their multiplicities can be retained.
+
+\begin{lemma}[Integer additive images]\label{lem:zonotope-image}
+Let \(R\in\Z^{r\times k}\) have row rank \(r\), where
+\(1\le r\le k\), and suppose \(|R_{ij}|\le W\) with \(W\ge1\).
+Set \(\mathcal S(R)=\{Ru:u\in\bits^k\}\). Then
+\[
+ |\mathcal S(R)|
+ \le \min\left\{
+  2^k,\quad
+  \sum_{j=0}^r\binom kj(\sqrt j\,W)^j,\quad
+  \left(\frac{\Eul kW}{\sqrt r}\right)^r
+ \right\},                                               \tag{Z1}
+\]
+where the term with \(j=0\) equals one. In rank zero the image has one element.
+\end{lemma}
+
+\begin{proof}
+Let \(\mathcal Z=R[0,1]^k\). The classical lattice-zonotope formula states
+\[
+ |\mathcal Z\cap\Z^r|
+ =\sum_{J\text{ independent}}m(J),\qquad
+ m(J)=\bigl[\operatorname{span}_{\R}(R_J)\cap\Z^r:
+                    R_J\Z^{|J|}\bigr],                  \tag{Z2}
+\]
+with \(m(\varnothing)=1\); the sum ranges over indexed independent column
+subsets. See \cite[Section 2.2 and equation (2)]{DM11}. Since
+\(\mathcal S(R)\subseteq\mathcal Z\cap\Z^r\), it remains to bound these indices.
+
+For an independent \(j\)-column set \(J\), choose \(j\) rows \(I\) such that
+\(M=R_{I,J}\) is nonsingular. Coordinate projection \(\pi_I\) is injective
+on \(\operatorname{span}_{\R}(R_J)\). Writing
+\(\Lambda_J=\operatorname{span}_{\R}(R_J)\cap\Z^r\), we have
+\[
+ M\Z^j\subseteq\pi_I(\Lambda_J)\subseteq\Z^j,
+ \qquad
+ m(J)=[\pi_I(\Lambda_J):M\Z^j]
+       \le |\det M|
+       \le(\sqrt j\,W)^j.
+\]
+The last inequality is Hadamard's determinant bound. Summing proves the
+middle estimate in (Z1).
+
+For the simpler final estimate put \(a=\sqrt r\,W\) and
+\(t=r/(ka)\le1\). Then
+\[
+ t^r\sum_{j=0}^r\binom kj a^j
+ \le(1+ta)^k\le\exp(kta)=\exp(r).
+\]
+Therefore the sum is at most
+\((\Eul ka/r)^r=(\Eul kW/\sqrt r)^r\). The bound \(2^k\) is immediate.
+\end{proof}
+
+The lattice-point formula is an upper bound on the attainable sums, not
+always an equality. For example, \(R=[2]\) has two Boolean sums, whereas
+its zonotope contains three integer points. The improvement over the
+coordinate-box bound comes from the geometry of the sum of line segments,
+without asserting that every lattice point is attainable.
+
+\begin{theorem}[Exact counting from a small integer summary]
+\label{thm:zonotope-counting}
+Let \(C\) be a rational threshold circuit on \(N\) Boolean inputs, with
+\(s\) gates. Suppose an integer matrix \(R\in\Z^{r\times N}\) of row rank
+\(r\ge1\) is supplied, every direct input-weight row of \(C\) lies in its
+row span, and \(|R_{ij}|\le W\). Let \(L\) be the total binary description
+length of the circuit and the supplied matrix. Then SAT and exact \(\#\mathrm{SAT}\)
+can be solved in time
+\[
+ \poly(N,s,L)\,
+ \min\left\{2^N,
+       \left(\frac{\Eul NW}{\sqrt r}\right)^r\right\}.   \tag{Z3}
+\]
+There is no restriction on circuit depth or on internal weights beyond
+their finite rational descriptions. Other bounds in Lemma~\ref{lem:zonotope-image}
+can replace the displayed state bound.
+\end{theorem}
+
+\begin{proof}
+Read input coordinates successively. At stage \(j\), maintain a dictionary
+indexed by the reachable sums
+\[
+ v=\sum_{i=1}^j R_i x_i,
+\]
+where \(R_i\) is column \(i\). Each entry stores the number of prefixes
+with that sum and one representative prefix. Start with count one at zero.
+On reading the next coordinate, send an entry to \(v\) and \(v+R_{j+1}\),
+add multiplicities when keys coincide, and retain one representative.
+
+Every partial sum is also a full-input sum, obtained by appending zeros.
+Consequently every stage has at most \(|\mathcal S(R)|\) entries. Keys need
+\(O(r\log(NW+1))\) bits, counts need at most \(N+1\) bits, and representatives
+need at most \(N\) bits. Sorting the candidate keys at each stage provides a
+deterministic implementation with polynomial overhead per entry.
+
+If \(Rx=Rx'\), all direct input-weighted sums in the original circuit agree.
+Topological induction then gives the same complete transcript on \(x,x'\).
+Evaluate the original circuit on one representative of each final summary,
+and add the stored multiplicities of accepting summaries. This counts
+exactly all satisfying inputs. It avoids constructing a factorization of
+the other input rows through \(R\). Exact rational gate evaluation takes
+polynomial time in the description length. Apply
+Lemma~\ref{lem:zonotope-image} to bound the number of dictionary entries.
+\end{proof}
+
+In rank zero the output is constant and one circuit evaluation suffices.
+The row-span condition can be checked by exact rational elimination. The
+algorithmic statement requires finite descriptions: for arbitrary abstract
+real coefficients the same construction is a real-arithmetic or nonuniform
+representation, rather than automatically a Turing-machine algorithm.
+
+\begin{corollary}[A larger useful rank regime]\label{cor:zonotope-regime}
+For fixed \(c>0\), if
+\[
+ r=(c+o(1))\frac{N}{\log_2N},\qquad W=N^{o(1)},
+\]
+then the algorithm takes
+\[
+ 2^{(c/2+o(1))N}\poly(N,s,L)
+\]
+time, capped by ordinary \(2^N\) enumeration. In particular it saves a
+constant fraction of the exponent whenever \(c<2\).
+\end{corollary}
+
+\begin{proof}
+The logarithm of the state bound is
+\[
+ r\left(\log_2\Eul+\log_2N+\log_2W-\tfrac12\log_2r\right)
+ = (c/2+o(1))N.
+\]
+\end{proof}
+
+The coordinate-box bound would give exponent \(c+o(1)\) in this regime.
+The improvement concerns circuits admitting the stated summary, not
+unrestricted threshold-circuit counting. More generally,
+\(W=N^{\gamma+o(1)}\) gives exponent
+\(c(\gamma+1/2)+o(1)\).
+
+\subsection{Totally unimodular summaries and matroid states}
+\label{sec:tu-summary}
+
+A matrix is \emph{totally unimodular} if every square minor is zero or
+\(\pm1\). For such a summary matrix, the state count has an exact
+combinatorial interpretation.
+
+\begin{proposition}[Summary states are counted by independent sets]
+\label{prop:tu-summary}
+If \(R\in\Z^{r\times N}\) has row rank \(r\) and is totally unimodular,
+then
+\[
+ |\mathcal S(R)|
+ = |R[0,1]^N\cap\Z^r|
+ = \#\{J\subseteq[N]:R_J\text{ has independent columns}\}
+ \le\sum_{j=0}^r\binom Nj.                              \tag{Z4}
+\]
+Thus the exact-counting algorithm of Theorem~\ref{thm:zonotope-counting}
+takes \(\poly(N,s,L)\sum_{j=0}^r\binom Nj\) time under this hypothesis.
+In particular, \(r=o(N)\) gives subexponential dependence on \(N\).
+\end{proposition}
+
+\begin{proof}
+Every independent column set has a nonzero minor equal to \(\pm1\), so
+the index bound in the proof of Lemma~\ref{lem:zonotope-image} gives
+\(m(J)=1\). Formula (Z2) therefore counts independent column subsets.
+
+To prove that every integer point \(v\) of the zonotope is attainable,
+consider the nonempty bounded polytope
+\[
+ P_v=\{x:Rx=v,\ 0\le x_i\le1\}.
+\]
+Choose a vertex and let \(J\) be its fractional coordinates. Those columns
+must be independent; a dependence would permit a small perturbation in
+both directions while remaining in \(P_v\). All other coordinates are zero
+or one. The remaining equations have an integer right-hand side, and a
+nonsingular minor of \(R_J\) equals \(\pm1\). Cramer's rule therefore makes
+all coordinates in \(J\) integers as well. The vertex is Boolean, proving
+the reverse inclusion.
+
+For \(r\le N/2\), the final count is at most \(2^{Nh_2(r/N)}\).
+Since \(h_2(r/N)=o(1)\) when \(r=o(N)\), the subexponential conclusion follows.
+\end{proof}
+
+The independent column subsets form the independent sets of the
+\emph{column matroid}. Their number is the Tutte-polynomial evaluation
+\(T_M(2,1)\), the unimodular specialization of the arithmetic-Tutte
+formula \cite{DM11}. Thus additive circuit summaries admit a matroid
+interpretation as well as a geometric one.
+
+\paragraph{A concrete graph class.}
+Let the inputs label the \(N\) edges of an oriented graph, and let \(R\)
+be a reduced vertex-edge incidence matrix. Its summary records the signed
+vertex imbalances of the selected edges. Columns are independent exactly
+when their edges form a forest, so the number of attainable imbalance
+vectors equals the number of forests. Suppose every gate's direct edge
+weights are differences of vertex potentials, equivalently its input row
+lies in the incidence-matrix row span. Exact counting then takes polynomial
+time per forest, regardless of depth or internal weights. With
+\(r=|V|-\#\text{components}\), the sufficient bound is
+\(\poly(N,s,L)\sum_{j\le r}\binom Nj\). For
+\(|V|=O(\sqrt N)\), this is
+\(2^{O(\sqrt N\log N)}\poly(N,s,L)\).
+
+An invertible change of summary coordinates does not change the image
+cardinality. The original circuit rows can therefore be arbitrary rational
+combinations of a supplied totally unimodular basis; their numerical
+magnitudes need not be small.
+
+
+
+\section{Unambiguous cells, dominance, and unique-extension ILP}\label{sec:ILP}
+Every Boolean LTF admits a strict integer-margin representation. Choose such a representation independently at each gate and write its score as
+\[
+ Q_i(x,z_{<i})=a_i\cdot x+\sum_{j<i}b_{ij}z_j-\theta_i,
+ \qquad |Q_i|\ge1
+\]
+on every Boolean assignment of its arguments, with output one exactly when \(Q_i>0\). This normalization need not preserve earlier small-weight or rank parameters.
+
+For a putative transcript \(z\in\bits^s\), let \(\sigma_i=2z_i-1\). Its consistency region is
+\[
+ \mathcal P_z=\{x\in\bits^N:
+     \sigma_i Q_i(x,z_{<i})\ge1\text{ for every }i\}.      \tag{23}
+\]
+For fixed \(z\), this is an intersection of \(s\) halfspaces in the original inputs. The regions partition the Boolean cube, because gate evaluation gives a unique transcript. If the output is \(z_s\),
+\[
+ f(x)=\sum_{z:z_s=1}\ind{x\in\mathcal P_z}.                \tag{24}
+\]
+The sum is ordinary integer addition with disjoint supports.
+
+After splitting \(x=(u,v)\), write \(Q_i=A_i(u)+D_i(v)+c_i(z)\). Set
+\[
+ \alpha_z(u)_i=\sigma_i A_i(u),\qquad
+ \beta_z(v)_i=1-\sigma_i(D_i(v)+c_i(z)).
+\]
+Then \(\mathcal P_z\) is the dominance predicate
+\(\alpha_z(u)\ge\beta_z(v)\) coordinatewise in dimension \(s\).
+This extends the guessed-gate-output/ILP/dominance viewpoint used for sparse depth-two threshold satisfiability \cite{IPS13}. Expanding all \(2^s\) transcripts is itself expensive; the representation alone is not a fast counting algorithm.
+
+For a compact integer program, choose integers
+\(M_i\ge\max_{x,z_{<i}}|Q_i(x,z_{<i})|\). Introduce Boolean variables \(z_i\) and impose
+\[
+ 1-(M_i+1)(1-z_i)\le Q_i(x,z_{<i})
+ \le -1+(M_i+1)z_i.                                    \tag{25}
+\]
+When \(z_i=1\), these inequalities require \(1\le Q_i\le M_i\); when \(z_i=0\), they require \(-M_i\le Q_i\le-1\). Together with \(z_s\ge1\), they give an ILP with \(N+s\) Boolean variables and \(2s+1\) linear inequalities. Every satisfying original input has exactly one extension. Thus the construction preserves exact solution counts.
+
+\section{Quadratic potentials and unique sinks on cube faces}\label{sec:potential}
+Use the same strict integer-margin scores. Define positive priorities backwards:
+\[
+ \lambda_s=1,\qquad
+ \lambda_i=1+\sum_{j>i}\lambda_j|b_{ji}|.
+\]
+For fixed \(x\), consider the quadratic Boolean energy
+\[
+ \mathcal E_x(z)=-\sum_{i=1}^s\lambda_i z_iQ_i(x,z_{<i}). \tag{26}
+\]
+Although circuit dependencies are directed, a quadratic function defines symmetric pair interactions. The priorities ensure that each earlier gate's own correctness dominates all later terms in which it appears.
+
+\begin{theorem}[Circuit evaluation as a quadratic unique-sink system]\label{thm:potential}
+Orient every edge of the \(s\)-dimensional Boolean cube toward decreasing \(\mathcal E_x\).
+The orientation is acyclic, every face has a unique sink, and the unique sink of the whole cube is the circuit transcript.
+A sweep updating coordinates in topological order reaches that transcript in at most \(s\) coordinate updates.
+\end{theorem}
+\begin{proof}
+For an edge changing \(z_i\) from zero to one,
+\[
+ \Delta_i\mathcal E_x
+ =-\lambda_iQ_i(x,z_{<i})
+   -\sum_{j>i}\lambda_jb_{ji}z_j.                        \tag{27}
+\]
+The absolute value of the second term is at most \(\lambda_i-1\), while
+\(|\lambda_iQ_i|\ge\lambda_i\). Hence the energy-minimizing choice of \(z_i\) is exactly its gate rule, independently of later bits. There are no tied edges.
+
+On any face, some coordinates are fixed. Process the remaining coordinates in increasing order, assigning each its gate rule with the fixed coordinates treated as constants. This produces one assignment satisfying every free-coordinate rule. Any sink must satisfy those rules and therefore equals that assignment by induction. Strict energy decrease prohibits directed cycles. On the whole cube, the rules are exactly circuit evaluation, and a topological sweep satisfies them permanently.
+\end{proof}
+
+If \(|b_{ij}|\le W\), induction gives \(\lambda_i\le(W+1)^{s-i}\). These priorities may be exponentially large as numbers, while using only polynomially many bits when the gate description has polynomial bit complexity.
+
+Circuit encodings by quadratic objectives and neural-network symmetrization have prior history \cite{CB92,Orponen96}. The exact statement proved here is the direct priority construction with no auxiliary transcript bits and a unique sink on every face. We do not infer an algorithm faster than the topological circuit evaluation already available.
+
+\section{What the approach proves, and what it does not}\label{sec:limits}
+\subsection{The unrestricted result is an activity tradeoff}
+Theorem~\ref{thm:energy} applies to the fully unrestricted real-weight model. It yields exponential gate size at bounded activity and linear activity at linear size. If activity is allowed to be as large as the gate count, its gate-only consequence is \(q\ge m/2\), the classical linear scale. The direction-menu and rank--catalogue theorems yield exponential size bounds when the indicated structural resources are limited. The exact and randomized average-activity bounds impose one-sided input rank one. None of these arguments proves a superlinear lower bound on the total number of arbitrary threshold gates for an explicit function.
+
+\subsection{The input-reading resource has a normalization ceiling}
+Every \(N\)-input Boolean function can be computed with \(N\) input-reading copy gates followed by a sufficiently large input-free Boolean circuit. Therefore no lower bound that leaves input-free size unrestricted can force more than \(N\) input-reading gates for a general function. Likewise \(P(C)\le2^N\) for every deterministic circuit on \(N\) inputs, so a support-size argument alone cannot force \(q>N\).
+
+Theorem~\ref{thm:scalar_universal} strengthens this observation: every size-\(S\) circuit has a size-\(S+O(N^2)\) normalization with \(N+1\) collinear input-reading gates and at most \(\lceil N/2\rceil\) active ones. Thus low input rank alone, with unrestricted real coefficients and sufficiently rich internal offsets, is universal with polynomial overhead. The rank--catalogue lower bounds become strong because they also control the number of available comparisons. The exact scalar theorem identifies the resulting query--activity capacity without hiding the cost of its polynomial implementation in the universal case.
+
+\subsection{Trees and branching programs preserve different resources}
+Inner product provides a sharp warning. A linear-query branching program can keep one parity bit and query \(x_i+y_i\ge2\) for each coordinate pair, toggling its state when the query returns one. This has width two and \(O(m)\) nodes. In contrast, Corollary~\ref{cor:IPtree} requires at least \(2^{m/2}\) leaves in every linear decision tree.
+
+There is also a threshold circuit with \(m+O(\log m)\) gates. Compute the \(m\) conjunctions \(u_i=x_i y_i\), then extract the binary digits of \(S=\sum_i u_i\) from most to least significant:
+\[
+ b_j=\ind{S-\sum_{\ell>j}2^\ell b_\ell\ge2^j}.
+\]
+Its lowest bit is the answer. Consequently a polynomial-size tree compilation of all linear-size threshold circuits is impossible. The activation-tree theorem controls leaves by attainable transcripts, which can indeed be exponentially numerous.
+
+For the same reason, a lower bound on tree leaves cannot be applied to the number of merged states in Theorem~\ref{thm:bias}. Many histories can reach one state. Read-once branching-program lower bounds also do not apply to the bit-serial read-many compilation. Proposition~\ref{prop:width-two-cnf} makes the counting limitation concrete: arbitrary 3-CNF already has a width-two pending-bias representation with totally unimodular internal weights.
+
+The input-summary algorithm of Theorem~\ref{thm:zonotope-counting} succeeds for a different reason. It reads each original input bit once and retains the number of prefixes reaching each summary. Equivalent summaries imply equal complete circuit behavior. This permits exact multiplicity propagation, whereas repeated queries in a general linear-query program can impose consistency conditions on an already used input.
+
+\subsection{A barrier to a universal polynomial-size ordinary program}
+A polynomial-size ordinary branching-program simulation for every circuit with \(N\) inputs and at most \(N\) threshold gates would imply
+\(P/\poly=L/\poly\). To see this, pad any polynomial-size Boolean circuit with unused inputs until the input count dominates its gate count, view AND/OR/NOT gates as threshold gates, apply the hypothetical simulation, and fix the padding bits. Ordinary polynomial-size branching programs characterize \(L/\poly\); the reverse inclusion in \(P/\poly\) is standard.
+
+This implication identifies the strength of a proposed universal compiler. It is not a proof that no better structural compiler exists.
+
+\subsection{Concrete further questions}
+The second pass resolves two targets from the earlier draft in restricted models: it obtains a distribution-sensitive activity argument that survives constant error, and a finite-state interpretation that supports exact counting. It also shows that the scalar capacity lower bound has a matching polynomial implementation in its natural asymptotic regime.
+
+The main remaining mathematical questions are more focused. Can the ordered-interval entropy argument be extended to a useful number of input directions while retaining a strong dependence on the error? Can attainable threshold menus be bounded in a broad circuit class without assuming small syntactic fan-in or a fixed set of coefficients? Can a lower-bound measure remain costly after histories merge, beyond the tree-leaf count? For the algorithmic side, which additional algebraic conditions guarantee that the Boolean additive image is much smaller than its containing integer box or zonotope? Finally, the historical priority of the formulations and applications proved here needs a wider literature audit.
+
+An unrestricted average-activity lower bound does not follow from the present support-size argument. Its exact rectangle extraction also cannot be used unchanged for constant error, since a small extracted rectangle may lie within the error set. The one-sided scalar proofs overcome this issue through interval structure and character orthogonality; those features must be replaced to reach broader input-access models.
+
+\appendix
+\section{Proof and computational audit}\label{sec:audit}
+The central proof has three independent steps, each with an explicit finite statement:
+\begin{enumerate}
+ \item At a comparison node, the quantile pivot retains at least the chosen child leaf fraction on both sides.
+ \item Recursive application telescopes those fractions to \(1/L\).
+ \item An attainable circuit transcript determines one leaf, while activity bounds the number of transcripts by a Hamming ball.
+\end{enumerate}
+The use of inclusive prefixes and suffixes handles ties exactly. The proof never assumes leaf regions are rectangles. Input-free gates contribute no new branch. Unreachable branches may be removed, and unary nodes suppressed, without changing the computed function.
+
+The accompanying \texttt{weighted\_pivot\_validation.py} uses seed \(42\) and constructs 10,000 random separable-comparison trees with 1--39 leaves, unequal domains of sizes 1--49, and many tied integer scores. It constructs the rectangle supplied by the proof and verifies both exact integer inequalities
+\(|A'|L\ge|A|\), \(|B'|L\ge|B|\), and routing to a single leaf. The run checked 283,199 entries of extracted rectangles without a failure. The same script checks the Hadamard rectangle bound for \(m\le3\), the activation-pattern bound \(P(C)\le B(q,e)\) on 300 random circuits, the depth-three block construction of Section~\ref{sec:upperenergy} on all inputs for \(m\le5\), and the numerical constants \(h_2^{-1}(1/4)\) and \(h_2^{-1}(1/2)\).
+
+The second pass includes three further reproducible checks. All four scripts accompany the source and run with \texttt{make check}; their combined output is recorded in \texttt{validation.txt}.
+\begin{itemize}
+ \item \texttt{interval\_entropy\_validation.py}, seed \(20261018\), checks all \(26\) column orders for \(m=1,2\), and \(160\) sampled orders for \(m=3,\ldots,7\). The largest observed conditional maximal-run entropy is \(1.306174414\) bits, and all \(244{,}676\) anchor probabilities \(\Pr[A>2^k]\le2^{-k-1}\) hold exactly. It also checks \(39{,}480\) dyadic certificates and \(98{,}072\) anchor/location conditions over every sign sequence of lengths \(1,2,4,8\), plus \(43{,}648\) exact tail probabilities of \(L_\eta\) for \(m\le5\) and \(206{,}722\) grid checks of the elementary inequalities. These checks exercise the certificate used by the proof, including its block-size, bias, and location inequalities.
+ \item \texttt{zonotope\_validation.py} checks \(400\) full-rank integer matrices against the lattice-index, Hadamard, and \((\Eul kW/\sqrt r)^r\) bounds, including \(161\) totally unimodular cases in which the image count equals the number of independent column sets; \(150\) graph-incidence examples against forest counts; the Fibonacci identity for \(s=1,\ldots,100\); and \(100\) rational threshold circuits with supplied summaries, including \(45\) with nonconstant outputs. For the circuit instances it compares every summary multiplicity, representative evaluation, and final satisfying-input count with exhaustive input enumeration. It also simulates the pending-bias program on \(200\) circuits, the width-two 3-CNF encoding on \(100\) formulas, and the unique-sink property of the quadratic potential on every face for \(264\) circuit--input pairs.
+ \item \texttt{scalar\_coding\_validation.py} exhausts \(66\) parameter pairs with \(q\le10\), checks \(11{,}264\) lexicographic ranks, \(103{,}423\) input-reading comparisons, and \(114{,}687\) prefix/final invariants. Across \(484\) feasible triples with \(N\le9\) and \(q\le12\), it verifies \(32{,}428\) full gate-level encodings and decodings, \(245{,}548\) binary decoder gates, and nine sharp \(N\)-versus-\(N+1\) capacity thresholds. It also builds the ordered comparison tree of Theorem~\ref{thm:scalar_exact} for all \(448\) triples \((q,e,L)\) with \(q\le6\). The expected words are independently enumerated.
+\end{itemize}
+
+The mathematical statements were also checked by independent proof audits during preparation, including the adaptive scalar implementation, finite geometric perturbations, and the randomized entropy estimate with its optimized error coefficient. These finite computations exercise proof certificates and construction edge cases; the mathematical proofs establish the unbounded statements. No proof-assistant verification of the new lemmas is claimed.
+
+\section{Result ledger}
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{0.29\textwidth}>{\raggedright\arraybackslash}X@{}}
+\toprule
+Statement & Role and scope\\
+\midrule
+Leaf-count rectangles and worst-case activity & Explicit proofs; arbitrary depth and real weights. Historical priority unresolved.\\
+Polynomial-size \(O(m/\log m)\)-energy construction & Known block idea, with a depth-three implementation included.\\
+Exact scalar capacity and sparse compiler & Exact iff characterization and \(S+O(qe+N)\) implementation proved here. Enumerative coding is classical; activity counts only raw-input-reading gates.\\
+One-sided exact entropy \(>m-2\) & Ordered-run lemma and conditional-entropy argument proved here, with unrestricted access to the other input side.\\
+Randomized entropy \(\ge(1-2\epsilon)m-O(\log m)\) & Biased-interval estimate proved here. One-sided rank at most one for each seed; matching leading-coefficient example.\\
+All-splits capacity and explicit family & Prior results from Schlesinger's source development; capacity proof reproduced, extractor family cited.\\
+Direction menus and input-rank catalogues & Static comparison expansion and cutting consequences proved here; cutting theorem is classical.\\
+Integer-summary exact counting & Multiplicity-preserving dynamic program and determinant bound proved here; lattice-zonotope formula is classical. Requires rational descriptions.\\
+TU summaries, matroid states, Fibonacci programs & Exact specializations proved here. TU input summaries support counting; small internal bias states alone do not.\\
+Input-summary entropy & Standard information-capacity method applied to summaries; no novelty claim for the method.\\
+Halfspace, dominance, ILP, and quadratic potential & Exact constructions with historical precursors; unique extension and face-unique sinks made explicit.\\
+Unrestricted superlinear total-gate lower bound & Not established.\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+The ledger distinguishes proof status from bibliographic priority. The draft proves its stated new formulations and applications; it does not assert that an exhaustive literature search has established their first occurrence.
+
+\begin{thebibliography}{99}
+\small\raggedright\setlength{\parskip}{0pt}\setlength{\itemsep}{5pt}
+\bibitem{Cover73}
+T. M. Cover.
+\emph{Enumerative source encoding}.
+IEEE Transactions on Information Theory 19(1):73--77, 1973.
+\url{https://doi.org/10.1109/TIT.1973.1054929}.
+\url{https://isl.stanford.edu/~cover/papers/transIT/0073cove.pdf}.
+
+\bibitem{Chazelle93}
+B. Chazelle.
+\emph{Cutting hyperplanes for divide-and-conquer}.
+Discrete \& Computational Geometry 9(1):145--158, 1993.
+\url{https://doi.org/10.1007/BF02189314}.
+
+\bibitem{DM11}
+M. D'Adderio and L. Moci.
+\emph{Ehrhart polynomial and multiplicity Tutte polynomial}.
+arXiv:1102.0135v2, 2011.
+\url{https://arxiv.org/abs/1102.0135}.
+
+\bibitem{ROS94}
+V. P. Roychowdhury, A. Orlitsky, and K.-Y. Siu.
+\emph{Lower bounds on threshold and related circuits via communication complexity}.
+IEEE Transactions on Information Theory 40(2):467--474, 1994.
+\url{https://doi.org/10.1109/18.312169}.
+
+\bibitem{TV97}
+G. Tur\'an and F. Vatan.
+\emph{Linear decision lists and partitioning algorithms for the construction of neural networks}.
+Foundations of Computational Mathematics, pp. 414--423, 1997.
+\url{https://doi.org/10.1007/978-3-642-60539-0_34}.
+
+\bibitem{UDM06}
+K. Uchizawa, R. Douglas, and W. Maass.
+\emph{On the computational power of threshold circuits with sparse activity}.
+Neural Computation 18(12):2994--3008, 2006.
+\url{https://igi-web.tugraz.at/PDF/163.pdf}.
+
+\bibitem{CMMS20}
+A. Chattopadhyay, M. Mahajan, N. S. Mande, and N. Saurabh.
+\emph{Lower bounds for linear decision lists}.
+Chicago Journal of Theoretical Computer Science, 2020, Article 1.
+\url{https://doi.org/10.4086/cjtcs.2020.001}.
+Author manuscript:
+\url{https://www.imsc.res.in/~meena/papers/CMMS-LDL.pdf}.
+
+\bibitem{Dahiya23}
+Y. Dahiya, Vignesh K, M. Mahajan, and K. Sreenivasaiah.
+\emph{Linear threshold functions in decision lists, decision trees, and depth-2 circuits}.
+Information Processing Letters 183:106418, 2024; author manuscript dated 3 May 2023.
+\url{https://doi.org/10.1016/j.ipl.2023.106418}.
+\url{https://people.iith.ac.in/karteek/assets/pdf/LDT-paper.pdf}.
+
+\bibitem{Uchizawa14}
+K. Uchizawa.
+\emph{Lower bounds for threshold circuits of bounded energy}.
+Interdisciplinary Information Sciences 20(1):27--50, 2014.
+\url{https://www.jstage.jst.go.jp/article/iis/20/1/20_IIS200102/_pdf}.
+
+\bibitem{UA23}
+K. Uchizawa and H. Abe.
+\emph{Exponential lower bounds for threshold circuits of sub-linear depth and energy}.
+MFCS 2023, LIPIcs 272, Article 85.
+\url{https://doi.org/10.4230/LIPIcs.MFCS.2023.85}.
+
+\bibitem{Schlesinger26}
+S. Schlesinger.
+\emph{Weighted threshold programs and one-dimensional capacity}.
+Complexitylib source development, branch \texttt{dev}, accessed 18 October 2026.
+Definitions, capacity proof, and gate-count corollaries:
+\url{https://github.com/SamuelSchlesinger/complexitylib/tree/dev/Complexitylib/Algebraic/LowerBound/Threshold}.
+The retrieved \texttt{Internal/Capacity.lean} blob has SHA
+\texttt{6551f4b94f09a950747da146e01215c4d8c7f60c}.
+
+\bibitem{SchlesingerFamily26}
+S. Schlesinger.
+\emph{Explicit family consequences for threshold-program lower bounds}.
+Complexitylib, \texttt{Threshold/Family.lean}, accessed 18 October 2026.
+\url{https://github.com/SamuelSchlesinger/complexitylib/blob/dev/Complexitylib/Algebraic/LowerBound/Threshold/Family.lean}.
+Retrieved blob SHA \texttt{87dd3966fe16c0b7481ad74521747f8d0949da63}.
+
+\bibitem{CTW26}
+L. Chen, A. Tal, and Y. Wang.
+\emph{Super-quadratic lower bounds for depth-2 linear threshold circuits}.
+ECCC TR26-039, 2026.
+\url{https://eccc.weizmann.ac.il/report/2026/039/}.
+
+\bibitem{Hastad25}
+J. H{\aa}stad.
+\emph{Efficiently finding small representations for LTFs}.
+ECCC TR25-209, 2025.
+\url{https://eccc.weizmann.ac.il/report/2025/209/}.
+
+\bibitem{IPS13}
+R. Impagliazzo, R. Paturi, and S. Schneider.
+\emph{A satisfiability algorithm for sparse depth two threshold circuits}.
+FOCS 2013.
+\url{https://cseweb.ucsd.edu/~paturi/myPapers/pubs/ImpagliazzoPaturiSchneider_2013_focs.pdf}.
+
+\bibitem{CB92}
+S. T. Chakradhar and M. L. Bushnell.
+\emph{A solvable class of quadratic 0--1 programming}.
+Discrete Applied Mathematics 36(3):233--251, 1992.
+\url{https://doi.org/10.1016/0166-218X(92)90256-A}.
+
+\bibitem{Orponen96}
+P. Orponen and F. Prost.
+\emph{Parallel programming on Hopfield nets}.
+Proceedings of the Finnish AI Conference, Vaasa, pp. 5--12, Finnish AI Society, 1996.
+\url{https://users.ics.aalto.fi/orponen/papers/hopprog_1996.pdf}.
+\end{thebibliography}
+\end{document}
+
